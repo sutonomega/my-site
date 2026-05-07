@@ -18,7 +18,7 @@ async function loadWorks() {
     params.get('slug');
 
   const response =
-    await fetch('../json/works.json');
+    await fetch('./json/works.json');
 
   const works =
     await response.json();
@@ -44,7 +44,7 @@ async function loadLyrics(slug) {
 
     const response =
       await fetch(
-        `../lyrics/${slug}.md`
+        `./lyrics/${slug}.md`
       );
 
     if (!response.ok) {
@@ -326,7 +326,7 @@ function openWork(slug) {
 async function renderWorkPage(slug) {
 
   const response =
-    await fetch('../json/works.json');
+    await fetch('./json/works.json');
 
   const works =
     await response.json();
@@ -479,7 +479,7 @@ function playCurrentWork(
 ) {
 
   const audioUrl =
-    `../audio/${slug}.mp3`;
+    `./audio/${slug}.mp3`;
   audio.dataset.slug =
     slug;
   if (

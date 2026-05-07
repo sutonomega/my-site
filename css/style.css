@@ -1686,3 +1686,36 @@ body.fade-out {
   border: 0;
 
 }
+
+@media (max-width: 768px) {
+
+  .filter-tags {
+
+    display: flex;
+
+    flex-wrap: nowrap;
+
+    overflow-x: auto;
+
+    gap: 0.8rem;
+
+    padding-bottom: 0.5rem;
+
+    -webkit-overflow-scrolling: touch;
+
+    scrollbar-width: none;
+
+    font-size: 0.85rem;
+
+    padding: 0.6rem 1rem;
+
+    white-space: nowrap;
+  }
+
+  .filter-tags::-webkit-scrollbar {
+
+    display: none;
+
+  }
+
+}

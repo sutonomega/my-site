@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Echo Note | 感情を音に残す音楽アーカイブ</title>
+
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Echo Note">
+  <meta property="og:description" content="言えなかった気持ちを、音に残すための音楽アーカイブ。">
+  <meta property="og:image" content="https://www.galpachi.com/images/ogp.png">
+  <meta property="og:url" content="https://www.galpachi.com/">
+  <meta property="og:site_name" content="Echo Note">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Echo Note">
+  <meta name="twitter:description" content="言えなかった気持ちを、音に残すための音楽アーカイブ。">
+  <meta name="twitter:image" content="https://www.galpachi.com/images/ogp.png">
+
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="icon" href="../images/favicon.png" type="image/png">
+</head>
+
+<body>
+  <audio id="global-audio"></audio>
+  <div id="loading-screen">
+
+    <h1>
+      Echo Note
+    </h1>
+
+  </div>
+  <div class="modal" id="video-modal">
+
+    <div class="modal-inner">
+
+      <button class="modal-close" id="modal-close">
+        ×
+      </button>
+
+      <div class="modal-video" id="modal-video"></div>
+
+    </div>
+
+  </div>
+  <div class="particles"></div>
+  <div class="mini-player" id="mini-player">
+
+    <button class="mini-play" id="mini-play">
+
+      ▶
+
+    </button>
+
+    <div class="mini-info">
+
+      <span id="mini-title">
+        -
+      </span>
+      <div class="mini-time">
+
+        <span id="current-time">
+          0:00
+        </span>
+
+        <span>
+          /
+        </span>
+
+        <span id="duration">
+          -:--
+        </span>
+
+      </div>
+      <div class="mini-progress">
+
+        <div class="mini-progress-bar" id="mini-progress-bar">
+        </div>
+
+      </div>
+      <div class="volume-control">
+
+        <span class="volume-icon">
+          ♪
+        </span>
+
+        <input type="range" id="volume-slider" min="0" max="1" step="0.01" value="0.7">
+
+      </div>
+    </div>
+
+  </div>
+  <main id="page-container">
+    <section class="hero">
+      <div class="hero-inner">
+
+        <p class="hero-sub">
+          MUSIC / VISUAL / ARCHIVE
+        </p>
+
+        <h1>Echo Note</h1>
+
+        <p class="hero-copy">
+          音楽をつくる、<br>
+          気持ちを残す。
+        </p>
+
+        <p class="hero-text">
+          言えなかった気持ち、
+          消えていくはずだった夜、
+          送れなかった言葉。
+          <br><br>
+          Echo Note は、
+          そんな感情を音に残すための場所です。
+        </p>
+
+        <a href="#playlist" class="hero-button">
+
+          作品を見る
+
+        </a>
+
+      </div>
+    </section>
+    <section class="playlist-section" id="playlist">
+
+      <div class="container">
+
+        <h2 class="section-title">
+          Playlist
+        </h2>
+
+        <div class="playlist-embed">
+
+          <iframe src="https://www.youtube.com/embed/videoseries?list=PLwV_3kCRB7k-2k4Q9q3BDauvxdcEkA0f6"
+            title="YouTube playlist" frameborder="0"
+            allow="autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen>
+          </iframe>
+
+        </div>
+
+      </div>
+
+    </section>
+    <section class="section" id="works">
+
+      <div class="container">
+        <div class="section-title">
+          <p>ARCHIVE</p>
+          <h2>作品一覧</h2>
+        </div>
+
+        <p class="active-filter" id="active-filter"></p>
+        <div class="filter-tags" id="filter-tags"></div>
+
+        <div class="works-grid" id="works-grid"></div>
+
+      </div>
+
+    </section>
+
+    <section class="section">
+
+      <div class="container">
+
+        <div class="section-title">
+          <p>ABOUT</p>
+          <h2>この場所について</h2>
+        </div>
+
+        <div class="about">
+          <p>
+            Echo Note は、
+            感情の余韻を音に残すための音楽プロジェクトです。
+            <br><br>
+            静かな夜や、
+            誰にも言えなかった気持ちに寄り添うような音楽を、
+            少しずつ記録しています。
+          </p>
+        </div>
+
+      </div>
+
+    </section>
+
+    <section class="section">
+
+      <div class="container">
+
+        <div class="section-title">
+          <p>LINKS</p>
+          <h2>活動場所</h2>
+        </div>
+
+        <div class="links-grid">
+
+          <a class="social-card" href="https://www.youtube.com/@galpachi_music" target="_blank"
+            rel="noopener noreferrer">
+
+            <h3>YouTube</h3>
+
+            <p>
+              フル尺の楽曲と映像作品を公開しています。
+              更新はゆっくりです。
+            </p>
+
+          </a>
+
+          <a class="social-card" href="https://www.tiktok.com/@nearly_galpachi" target="_blank"
+            rel="noopener noreferrer">
+
+            <h3>TikTok</h3>
+
+            <p>
+              毎日1曲、
+              ショート動画として感情の断片を投稿しています。
+            </p>
+
+          </a>
+
+          <a class="social-card" href="https://suno.com/@nearly_galpachi" target="_blank" rel="noopener noreferrer">
+
+            <h3>Suno</h3>
+
+            <p>
+              制作した楽曲をリアルタイムで記録しています。
+              一番更新頻度が高い場所です。
+            </p>
+
+          </a>
+
+        </div>
+    </section>
+
+    <footer>
+      © Echo Note
+    </footer>
+  </main>
+  <script src="../js/script.js"></script>
+  <script src="../js/player.js"></script>
+
+</body>
+
+</html>

@@ -5,16 +5,35 @@
 静かな夜、
 言えなかった気持ち、
 送れなかった言葉をテーマに、
-音楽と映像を記録しています。
+音楽・映像・歌詞を記録しています。
 
 ---
 
 # Site
 
 - Hero Section
+- Playlist Section
 - Works Archive
+- Dynamic Detail Page
+- Lyrics View
+- Mini Player
 - About Section
-- Footer
+
+---
+
+# Features
+
+- SPAライクなページ遷移
+- 楽曲再生維持
+- Mini Audio Player
+- Markdown歌詞表示
+- JSONベース管理
+- タグフィルター
+- IntersectionObserverによるフェード表示
+- YouTube Playlist埋め込み
+- YouTubeサムネイル自動取得
+- 動的カード生成
+- レスポンシブ対応
 
 ---
 
@@ -23,10 +42,28 @@
 ```plaintext
 project/
 
-├ index.html
-├ style.css
-├ script.js
-├ works.json
+├ pages/
+│  └ index.html
+│
+├ js/
+│  ├ script.js
+│  ├ player.js
+│  └ template.js
+│
+├ css/
+│  └ style.css
+│
+├ json/
+│  └ works.json
+│
+├ lyrics/
+│  └ *.md
+│
+├ audio/
+│  └ *.mp3
+│
+├ images/
+│
 └ thumbnail/
 ```
 
@@ -34,17 +71,31 @@ project/
 
 # Data Flow
 
-works.json に作品データを保存し、
-script.js で読み込んでカードを自動生成しています。
+作品データは works.json に保存し、
+JavaScriptで動的に読み込んでいます。
 
 ```plaintext
 works.json
 ↓
 fetch()
 ↓
+renderWorks()
+↓
 createCard()
 ↓
 HTML生成
+```
+
+歌詞データは Markdown で管理しています。
+
+```plaintext
+lyrics/slug.md
+↓
+fetch()
+↓
+renderWorkPage()
+↓
+Lyrics表示
 ```
 
 ---
@@ -54,36 +105,16 @@ HTML生成
 ```json
 [
   {
+    "slug": "yakusoku",
     "title": "約束",
     "text": "ただのやり取りが、ちゃんと残る約束になってた。",
-    "youtube": "https://www.youtube.com/embed/xxxxx",
-    "tiktok": "https://www.tiktok.com/xxxxx",
-    "date": "2025.07",
-    "tags": ["夜", "未送信"]
+    "youtube": "https://youtube.com/xxxxx",
+    "tiktok": "https://tiktok.com/xxxxx",
+    "date": "2026.05.04",
+    "tags": ["夜", "約束"]
   }
 ]
 ```
-
----
-
-# Features
-
-- レスポンシブ対応
-- JSONベース管理
-- IntersectionObserver によるフェード表示
-- 動的カード生成
-- YouTube埋め込み
-- TikTokリンク
-
----
-
-# Future
-
-- タグ絞り込み
-- モーダル再生
-- サムネイル管理
-- 検索機能
-- 個別ページ生成
 
 ---
 
@@ -93,7 +124,20 @@ HTML生成
 - CSS
 - JavaScript
 - JSON
+- Markdown
 - Google Fonts
+- YouTube Embed API
+
+---
+
+# Future
+
+- Related Works
+- 歌詞フェード表示
+- OGP自動化
+- Dynamic Theme
+- Search
+- PWA対応
 
 ---
 

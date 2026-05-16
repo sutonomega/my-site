@@ -1,8 +1,8 @@
 const fs = require('fs');
-
 const path = require('path');
 
-const lyricsDir = '../lyrics';
+const lyricsDir =
+  path.join(__dirname, '../lyrics');
 
 const files =
   fs.readdirSync(lyricsDir);
@@ -67,6 +67,6 @@ files.forEach(file => {
 
   console.log(
     `cleaned: ${file}`
-  );
+    );
 
 });

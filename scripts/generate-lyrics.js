@@ -1,20 +1,22 @@
 const fs = require('fs');
+const path = require('path');
 
 const works =
   require('../json/works.json');
 
-const lyricsDir = '../lyrics';
+const lyricsDir =
+  path.join(__dirname, '../lyrics');
 
 if (!fs.existsSync(lyricsDir)) {
-
   fs.mkdirSync(lyricsDir);
-
 }
 
 works.forEach(work => {
 
-  const filePath =
-    `${lyricsDir}/${work.slug}.md`;
+  const filePath = path.join(
+    lyricsDir,
+    `${work.slug}.md`
+  );
 
   if (!fs.existsSync(filePath)) {
 

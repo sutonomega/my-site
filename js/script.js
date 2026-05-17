@@ -100,7 +100,8 @@ function renderTags(works) {
 
 function createCard(work) {
 
-  let thumbnailUrl = '';
+  let thumbnailUrl =
+    './images/placeholder.png';
 
   if (work.youtube) {
 
@@ -115,8 +116,9 @@ function createCard(work) {
         `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
 
     } catch {
-
-      thumbnailUrl = '';
+      
+      thumbnailUrl =
+        './images/placeholder.png';
 
     }
 
@@ -396,27 +398,32 @@ async function renderWorkPage(slug) {
 
     <div class="detail-links">
 
-      <a
-        class="hero-button"
-        href="${work.youtube}"
-        target="_blank"
-        rel="noopener noreferrer">
-
-        YouTubeで見る
-
-      </a>
-
-      <a
-        class="hero-button secondary"
-        href="${work.tiktok}"
-        target="_blank"
-        rel="noopener noreferrer">
-
-        TikTokで見る
-
-      </a>
-
+      ${work.youtube ? `
+        <a
+          class="hero-button"
+          href="${work.youtube}"
+          target="_blank"
+          rel="noopener noreferrer">
+      
+          YouTubeで見る
+      
+        </a>
+      ` : ''}
+      
+      ${work.tiktok ? `
+        <a
+          class="hero-button secondary"
+          href="${work.tiktok}"
+          target="_blank"
+          rel="noopener noreferrer">
+      
+          TikTokで見る
+      
+        </a>
+      ` : ''}
+      
     </div>
+
     <div class="lyrics-block">
           
       <h2>

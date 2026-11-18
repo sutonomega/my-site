@@ -54,6 +54,7 @@ if (
       'echo-note-player',
       JSON.stringify({
         src: audio.src,
+        title: audio.dataset.title,
         time: audio.currentTime,
         paused: audio.paused
       })
@@ -63,37 +64,40 @@ if (
 
   function loadPlayerState() {
 
-    const saved =
-      JSON.parse(
-        localStorage.getItem(
-          'echo-note-player'
-        )
-      );
+    let saved;
+    let source;
+    try {
+      saved = JSON.parse(localStorage.getItem('echo-note-player'));
+      if (typeof saved?.src !== 'string' || !saved.src) return;
+      source = new URL(saved.src, document.baseURI);
+    } catch {
+      return;
+    }
 
-    if (!saved) return;
+    const track = source.pathname.match(/\/audio\/([A-Za-z0-9_-]+)[.]mp3$/);
+    if (!track) return;
 
-    audio.src = saved.src;
+    const slug = track[1];
+    const audioUrl = getAudioUrl(slug);
+    audio.dataset.slug = slug;
+    audio.dataset.title = saved.title || '';
 
-    audio.addEventListener(
-      'loadedmetadata',
-      () => {
+    audio.addEventListener('loadedmetadata', () => {
+      if (audio.src !== audioUrl) return;
 
-        audio.currentTime =
-          saved.time || 0;
+      if (Number.isFinite(saved.time) && saved.time > 0) {
+        audio.currentTime = Math.min(saved.time, audio.duration);
+      }
+      document.querySelector('.mini-player')?.classList.add('show');
 
-        if (!saved.paused) {
+      if (!saved.paused) {
+        audio.play().then(() => {
+          miniPlay.textContent = '❚❚';
+        }).catch(console.log);
+      }
+    }, { once: true });
 
-          audio.play().catch(console.log);
-
-          miniPlay.textContent =
-            '❚❚';
-
-        }
-
-      },
-      { once: true }
-    );
-
+    audio.src = audioUrl;
   }
 
   function formatTime(time) {
@@ -213,5 +217,7 @@ if (
     'timeupdate',
     savePlayerState
   );
+
+  loadPlayerState();
 
 }

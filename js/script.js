@@ -480,19 +480,21 @@ window.addEventListener(
   }
 );
 
+function getAudioUrl(slug) {
+  return `https://audio.galpachi.com/audio/${slug}.mp3`;
+}
+
 function playCurrentWork(
   slug,
   title
 ) {
 
   const audioUrl =
-    `./audio/${slug}.mp3`;
+    getAudioUrl(slug);
   audio.dataset.slug =
     slug;
   if (
-    !audio.src.includes(
-      `${slug}.mp3`
-    )
+    audio.src !== audioUrl
   ) {
 
     audio.src = audioUrl;

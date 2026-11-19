@@ -2,16 +2,16 @@
 
 from datetime import date
 import json
-import os
 from pathlib import Path
 import queue
 import threading
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 
+from catalog import DATA_DIR
 from publisher import SITE_ORIGIN, make_track, new_track_id, publish
 
-DRAFT = Path(os.environ.get("LOCALAPPDATA") or Path.home() / ".config") / "EchoNote" / "track-draft.json"
+DRAFT = DATA_DIR / "track-draft.json"
 
 
 class TrackForm(ttk.Frame):

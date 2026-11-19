@@ -1,5 +1,6 @@
 """Publish one Echo Note track using SSH and the authenticated GitHub CLI."""
 
+import argparse
 import base64
 from dataclasses import dataclass
 from datetime import date
@@ -13,6 +14,8 @@ import subprocess
 from urllib.parse import urlsplit
 from urllib.request import Request, urlopen
 from secrets import token_hex
+
+from catalog import Catalog
 
 REPOSITORY = "sutonomega/my-site"
 BRANCH = "main"
@@ -115,6 +118,11 @@ def gh(endpoint, payload=None):
     return json.loads(result.stdout)
 
 
+def read_blob(sha):
+    blob = gh(f"git/blobs/{sha}")
+    return base64.b64decode(blob["content"]).decode("utf-8")
+
+
 def read_snapshot():
     head = gh(f"git/ref/heads/{BRANCH}")["object"]["sha"]
     tree_sha = gh(f"git/commits/{head}")["tree"]["sha"]
@@ -122,8 +130,8 @@ def read_snapshot():
     if tree.get("truncated"):
         raise RuntimeError("GitHubのファイル一覧をすべて取得できなかったよ。")
     entries = {entry["path"]: entry["sha"] for entry in tree["tree"]}
-    blob = gh(f"git/blobs/{entries['json/works.json']}")
-    return head, tree_sha, entries, json.loads(base64.b64decode(blob["content"]))
+    works = json.loads(read_blob(entries["json/works.json"]))
+    return head, tree_sha, entries, works
 
 
 def stage_audio(track):
@@ -209,32 +217,72 @@ def inspect_track(track, snapshot):
     return False
 
 
-def publish(track, report):
-    report("GitHubで曲の重複を確認中…")
+def publish(track, report, catalog=None):
+    catalog = Catalog() if catalog is None else catalog
+    track_id = track.work["id"]
+    report("GitHubで曲の重複を確認し、SQLiteに公開待ちの曲を保存中…")
     snapshot = read_snapshot()
-    if inspect_track(track, snapshot):
-        report("同じ曲情報がすでに登録済みだよ。音源の配置と応答を確認するね。")
+    inspect_track(track, snapshot)
+    catalog.stage(track.work, track.lyrics)
+
     report("自宅UbuntuへMP3を配置中…")
     size, prefix = stage_audio(track)
     report("公開URLでMP3の部分取得を確認中…")
     verify_audio(track, size, prefix)
-    report("GitHubの最新状態を確認して、曲一覧と歌詞を登録中…")
+
+    report("GitHubの公開済みデータとSQLiteを照合中…")
     snapshot = read_snapshot()
-    if inspect_track(track, snapshot):
-        return snapshot[0]
-    head, base_tree, _, works = snapshot
+    already_published = inspect_track(track, snapshot)
+    head, base_tree, entries, works = snapshot
+    catalog.sync_published(entries, works, read_blob)
+    if already_published:
+        catalog.complete(track_id)
+        return head
+
+    exported_works, lyrics = catalog.export(track_id)
+    if exported_works != [track.work, *works] or lyrics != track.lyrics:
+        raise RuntimeError("別のウィンドウで曲情報が変わったよ。入力を確認して再試行してね。")
+    lyrics_path = f"lyrics/{track.slug}.md"
     files = {
-        "json/works.json": json.dumps([track.work, *works], ensure_ascii=False, indent=2) + "\n",
-        f"lyrics/{track.slug}.md": track.lyrics,
+        "json/works.json": json.dumps(exported_works, ensure_ascii=False, indent=2) + "\n",
+        lyrics_path: lyrics,
     }
+    report("SQLiteの曲一覧と歌詞をGitHubに登録中…")
     tree = gh("git/trees", {
         "base_tree": base_tree,
         "tree": [{"path": path, "mode": "100644", "type": "blob", "content": content} for path, content in files.items()],
     })["sha"]
     commit = gh("git/commits", {
-        "message": f"Add Echo Note track: {track.slug}",
+        "message": f"Add Echo Note track: {track_id}",
         "tree": tree,
         "parents": [head],
     })["sha"]
     gh(f"git/refs/heads/{BRANCH}", {"sha": commit, "force": False})
+    lyrics_sha = blob_sha(lyrics)
+    catalog.sync_published({**entries, lyrics_path: lyrics_sha}, exported_works,
+                           lambda sha: lyrics if sha == lyrics_sha else read_blob(sha))
+    catalog.complete(track_id)
     return commit
+
+
+
+def catalog_command():
+    parser = argparse.ArgumentParser(description="Echo NoteのSQLite曲カタログを操作する")
+    command = parser.add_mutually_exclusive_group(required=True)
+    command.add_argument("--sync-catalog", action="store_true", help="GitHubから公開済みの曲を取り込む")
+    command.add_argument("--backup-catalog", type=Path, metavar="PATH", help="指定した場所にSQLiteをバックアップする")
+    args = parser.parse_args()
+    catalog = Catalog()
+    if args.sync_catalog:
+        _, _, entries, works = read_snapshot()
+        catalog.sync_published(entries, works, read_blob)
+        print(f"{len(works)}曲を取り込んだよ: {catalog.path}")
+    else:
+        if not catalog.path.is_file():
+            parser.error("カタログが見つからないよ。先に --sync-catalog を実行してね。")
+        catalog.backup(args.backup_catalog)
+        print(f"バックアップしたよ: {args.backup_catalog}")
+
+
+if __name__ == "__main__":
+    catalog_command()

@@ -30,3 +30,21 @@ Ubuntuのログインユーザーに音源フォルダーの書き込み権限�
 画面のエラーを確認して、同じ曲ID・音源で再試行する。途中まで進んで配置された同一のMP3は再利用する。異なるMP3が同じ名で存在する場合、ツールは上書きせずに止まる。公開URLの確認に失敗した場合は、曲一覧を更新しない。公開中に別のコミットが入りGitHubへの登録が競合した場合も、上書きせずに止まる。
 
 このツールは1曲ずつの新規登録に対応する。公開済みの曲データや音源の編集は従来の手順で行う。
+
+## SQLite曲カタログ
+
+登録ツールは `%LOCALAPPDATA%\EchoNote\catalog.sqlite3` に曲情報と歌詞を保存する。公開処理では入力した曲を先にSQLiteへ記録し、音源確認後にGitHubの公開済みデータを取り込んで、SQLiteから公開用の曲一覧と歌詞を生成する。初回は既存の歌詞も取り込むため、少し時間がかかる。
+
+曲を追加せずにカタログを作成・更新するには、リポジトリのルートで次を実行する。GitHubで手動更新した曲情報も取り込める。公開待ちの曲は保持される。
+
+```powershell
+py -3 tools/track-publisher/publisher.py --sync-catalog
+```
+
+バックアップは、存在しない保存先を指定して実行する。
+
+```powershell
+py -3 tools/track-publisher/publisher.py --backup-catalog "$HOME\Documents\echo-note-catalog-backup.sqlite3"
+```
+
+データベースは登録ツールを使う端末ごとに保存される。公開済みの曲はGitHubから再取得できる。公開待ちの情報を別の端末に引き継ぐ場合は、SQLiteのバックアップに加えて、下書きファイル `track-draft.json` と元のMP3も手元に保管する。

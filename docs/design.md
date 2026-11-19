@@ -22,7 +22,7 @@ Cloudflare Tunnelは音声用ホストの `/audio/<slug>.mp3` をUbuntuの `http
 | `css/style.css` | 共通レイアウト、レスポンシブ表示、プレーヤーのスタイル |
 | `json/works.json` | 曲メタデータの配列 |
 | `lyrics/<slug>.md` | 曲ごとの歌詞。ブラウザーには改行付きのプレーンテキストとして表示する。 |
-| `scripts/` | 曲の登録、テキスト整形、音源の名前変更と公開確認 |
+| `scripts/` | サイトのビルド、手動の曲登録、音源の名前変更と公開確認 |
 | `CNAME` | GitHub Pagesのカスタムドメイン |
 
 ## 曲データ

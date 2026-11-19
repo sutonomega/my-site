@@ -34,7 +34,7 @@ npm run build
 - `index.html`、`css/`、`src/` は公開ページとプレーヤー。`js/site.js` はビルド出力。
 - `config/` は公開URL・曲ID・音声確認の共通設定。Ubuntuの接続先と認証情報は含めない。
 - `json/works.json` と `lyrics/` は曲のメタデータと歌詞。
-- `scripts/` は楽曲の追加・整形・配信確認に使う作業用スクリプト。
+- `scripts/` はサイトのビルド、手動での楽曲追加・音源名の変更・配信確認に使うスクリプト。
 
 ## 仕様と設計
 

@@ -2,6 +2,10 @@
 
 ガルパチの楽曲、歌詞、関連動画をまとめた音楽アーカイブ。サイトは [GitHub Pages](https://www.galpachi.com/) で公開し、MP3は Cloudflare Tunnel 経由で自宅UbuntuのNginxから配信する。
 
+## 登録画面から新曲を公開する
+
+WindowsでMP3と曲情報をまとめて追加する場合は、[曲の登録ツール](tools/track-publisher/README.md) を使える。
+
 ## 新曲を公開する
 
 作業用スクリプトには Node.js 18 以上が必要。リポジトリのルートから実行する。

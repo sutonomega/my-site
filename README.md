@@ -19,3 +19,8 @@
 - `index.html`、`css/`、`js/` は公開ページとプレーヤー。
 - `json/works.json` と `lyrics/` は曲のメタデータと歌詞。
 - `scripts/` は楽曲の追加・整形・配信確認に使う作業用スクリプト。
+
+## 仕様と設計
+
+- [サイト仕様](docs/specification.md)
+- [サイト設計](docs/design.md)

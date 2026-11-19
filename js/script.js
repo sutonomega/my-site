@@ -31,7 +31,7 @@ async function renderCurrentPage() {
     if (slug === null) {
       allWorks = works;
       activeTag = null;
-      pageContainer.innerHTML = homeHTML;
+      if (!pageContainer.querySelector("#works-grid")) pageContainer.innerHTML = homeHTML;
       renderTags(works);
       renderWorks(works);
       return;
@@ -430,4 +430,3 @@ function renderWorkPage(work, lyrics) {
 
 window.addEventListener('popstate', renderCurrentPage);
 renderCurrentPage();
-

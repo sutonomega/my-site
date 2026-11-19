@@ -43,6 +43,7 @@ export const MiniPlayer = forwardRef<PlayerHandle, { onSelect(slug: string): voi
   const restore = useRef<SavedPlayerState>();
   const [track, setTrack] = useState<Track>();
   const [playing, setPlaying] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const [time, setTime] = useState(0);
   const [duration, setDuration] = useState<number>();
   const [message, setMessage] = useState('');
@@ -94,6 +95,7 @@ export const MiniPlayer = forwardRef<PlayerHandle, { onSelect(slug: string): voi
 
   useImperativeHandle(handle, () => ({
     play(work) {
+      setExpanded(true);
       select(work);
       void start();
     },
@@ -139,7 +141,6 @@ export const MiniPlayer = forwardRef<PlayerHandle, { onSelect(slug: string): voi
       audio.currentTime = Math.min(saved.time, audio.duration);
     }
     syncProgress();
-    if (saved && !saved.paused) void start();
   }
 
   function failed() {
@@ -162,30 +163,36 @@ export const MiniPlayer = forwardRef<PlayerHandle, { onSelect(slug: string): voi
         onPlay={syncPlayback} onPlaying={syncPlayback} onPause={syncPlayback}
         onEnded={syncPlayback} onEmptied={syncPlayback} onError={failed}
         onTimeUpdate={() => { syncProgress(); save(); }} onSeeked={save} />
-      <div className={`mini-player${track ? ' show' : ''}`} id="mini-player">
-        <button className="mini-play" id="mini-play" aria-label={playing ? '一時停止' : '再生'}
-          disabled={!track} onClick={toggle}>{playing ? '❚❚' : '▶'}</button>
-        <div className="mini-info">
-          <span id="mini-title">{track?.title || '-'}</span>
-          <div className="mini-time">
-            <span id="current-time">{formatTime(time)}</span><span>/</span>
-            <span id="duration">{duration === undefined ? '-:--' : formatTime(duration)}</span>
-          </div>
-          <input className="mini-progress" id="mini-progress" type="range" min="0" max={duration ?? 0}
-            step="any" value={duration === undefined ? 0 : time} aria-label="再生位置" disabled={duration === undefined}
-            onChange={event => {
-              if (duration !== undefined) {
-                const audio = audioRef.current!;
-                audio.currentTime = Number(event.currentTarget.value);
-                setTime(audio.currentTime);
-              }
-            }} />
-          <p className="player-message" id="player-message" role="status">{message}</p>
-          <div className="volume-control"><span className="volume-icon">♪</span>
-            <input type="range" id="volume-slider" aria-label="音量" min="0" max="1" step="0.01" defaultValue="0.7"
-              onChange={event => { audioRef.current!.volume = Number(event.currentTarget.value); }} />
+      <div className="player-dock">
+        <div className="mini-player" id="mini-player" hidden={!expanded}>
+          <button className="mini-play" id="mini-play" aria-label={playing ? '一時停止' : '再生'}
+            disabled={!track} onClick={toggle}>{playing ? '❚❚' : '▶'}</button>
+          <div className="mini-info">
+            <span id="mini-title">{track?.title || '-'}</span>
+            <div className="mini-time">
+              <span id="current-time">{formatTime(time)}</span><span>/</span>
+              <span id="duration">{duration === undefined ? '-:--' : formatTime(duration)}</span>
+            </div>
+            <input className="mini-progress" id="mini-progress" type="range" min="0" max={duration ?? 0}
+              step="any" value={duration === undefined ? 0 : time} aria-label="再生位置" disabled={duration === undefined}
+              onChange={event => {
+                if (duration !== undefined) {
+                  const audio = audioRef.current!;
+                  audio.currentTime = Number(event.currentTarget.value);
+                  setTime(audio.currentTime);
+                }
+              }} />
+            <p className="player-message" id="player-message" role="status">{message}</p>
+            <div className="volume-control"><span className="volume-icon">♪</span>
+              <input type="range" id="volume-slider" aria-label="音量" min="0" max="1" step="0.01" defaultValue="0.7"
+                onChange={event => { audioRef.current!.volume = Number(event.currentTarget.value); }} />
+            </div>
           </div>
         </div>
+        <button type="button" className="player-visibility" aria-controls="mini-player" aria-expanded={expanded}
+          onClick={() => setExpanded(value => !value)}>
+          {expanded ? 'プレーヤーを隠す' : 'プレーヤーを表示'}
+        </button>
       </div>
     </>
   );

@@ -1293,18 +1293,39 @@ footer {
 
 /* ===== mini player ===== */
 
-.mini-player {
-
+.player-dock {
   position: fixed;
-
   left: 50%;
-
-  bottom: 24px;
-
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
   transform: translateX(-50%);
+  width: min(680px, calc(100% - 32px));
+  z-index: 999;
+  display: grid;
+  justify-items: end;
+  gap: 8px;
+  pointer-events: none;
+}
 
-  width:
-    min(680px, calc(100% - 32px));
+.player-visibility {
+  pointer-events: auto;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: var(--pill-radius);
+  padding: 8px 12px;
+  background: #101530;
+  color: white;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.player-visibility:focus-visible {
+  outline: 2px solid #b4beff;
+  outline-offset: 3px;
+}
+
+.mini-player {
+  width: 100%;
+  pointer-events: auto;
 
   display: flex;
 
@@ -1315,8 +1336,6 @@ footer {
   padding: 18px 22px;
 
   border-radius: 22px;
-
-  z-index: 999;
 
   background:
     rgba(10, 12, 20, 0.72);
@@ -1330,45 +1349,10 @@ footer {
   box-shadow:
     0 10px 40px rgba(0, 0, 0, 0.28);
 
-  animation:
-    miniFloat 6s ease-in-out infinite;
-
-  opacity: 0;
-
-  pointer-events: none;
-
-  transform: translateY(20px);
 }
 
-.mini-player.show {
-
-  opacity: 1;
-
-  pointer-events: auto;
-
-  transform: translateY(0);
-
-}
-
-@keyframes miniFloat {
-
-  0% {
-
-    transform:
-      translateX(-50%) translateY(0px);
-  }
-
-  50% {
-
-    transform:
-      translateX(-50%) translateY(-4px);
-  }
-
-  100% {
-
-    transform:
-      translateX(-50%) translateY(0px);
-  }
+.mini-player[hidden] {
+  display: none;
 }
 
 .mini-play {
@@ -1518,9 +1502,6 @@ body.fade-out {
 @media (max-width: 768px) {
 
   .mini-player {
-
-    bottom: 16px;
-
     padding: 14px 16px;
 
     gap: 14px;

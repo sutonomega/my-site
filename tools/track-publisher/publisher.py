@@ -158,7 +158,12 @@ fi
 
 def verify_audio(track, size, prefix):
     url = f"{AUDIO_ORIGIN}/audio/{track.slug}.mp3"
-    request = Request(url, headers={"Range": "bytes=0-1", "Origin": SITE_ORIGIN, "Cache-Control": "no-cache"})
+    request = Request(url, headers={
+        "Range": "bytes=0-1",
+        "Origin": SITE_ORIGIN,
+        "Cache-Control": "no-cache",
+        "User-Agent": "EchoNote-TrackPublisher/1.0",
+    })
     with urlopen(request, timeout=20) as response:
         if (
             response.geturl() != url

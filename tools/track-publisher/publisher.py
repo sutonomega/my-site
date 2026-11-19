@@ -57,12 +57,10 @@ def track_id_for_slug(slug):
 
 
 def make_track(fields):
-    title = fields["title"].strip()
+    metadata = track_metadata(fields)
     slug = fields["slug"].strip()
     target = fields["target"].strip()
     audio = Path(fields["audio"].strip())
-    if not title:
-        raise ValueError("曲名を入力してね。")
     if not SLUG.fullmatch(slug):
         raise ValueError("曲IDは80文字以内の半角小文字・数字・ハイフン・アンダースコアで、先頭は英数字にしてね。")
     if not SSH_TARGET.fullmatch(target):
@@ -73,6 +71,14 @@ def make_track(fields):
         header = source.read(3)
     if header != b"ID3" and (len(header) < 2 or header[0] != 0xFF or header[1] & 0xE0 != 0xE0):
         raise ValueError("MP3として認識できないファイルだよ。Sunoなどから出力したMP3を確認してね。")
+    work = {"id": track_id_for_slug(slug), "slug": slug, **metadata}
+    return Track(work, fields["lyrics"].strip(), audio, target)
+
+
+def track_metadata(fields):
+    title = fields["title"].strip()
+    if not title:
+        raise ValueError("曲名を入力してね。")
     try:
         raw_date = fields["date"].strip().replace(".", "-")
         if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", raw_date):
@@ -88,17 +94,13 @@ def make_track(fields):
             raise ValueError(f"{service} のHTTPSリンクを確認してね。")
         urls[service] = value
     tags = list(dict.fromkeys(part.strip() for part in re.split(r"[,、\n]", fields["tags"]) if part.strip()))
-    work = {
+    return {
         "title": title,
-        "id": track_id_for_slug(slug),
-        "slug": slug,
         "text": fields["text"].strip(),
         **urls,
         "date": release_date,
         "tags": tags,
     }
-    return Track(work, fields["lyrics"].strip(), audio, target)
-
 
 def gh(endpoint, payload=None):
     args = ["gh", "api", f"repos/{REPOSITORY}/{endpoint}"]
@@ -217,6 +219,97 @@ def inspect_track(track, snapshot):
     return False
 
 
+def commit_files(head, base_tree, files, message):
+    tree = gh("git/trees", {
+        "base_tree": base_tree,
+        "tree": [{"path": path, "mode": "100644", "type": "blob", "content": content} for path, content in files.items()],
+    })["sha"]
+    commit = gh("git/commits", {
+        "message": message,
+        "tree": tree,
+        "parents": [head],
+    })["sha"]
+    gh(f"git/refs/heads/{BRANCH}", {"sha": commit, "force": False})
+    return commit
+
+
+@dataclass(frozen=True)
+class TrackRevision:
+    work: dict
+    lyrics: str
+    lyrics_sha: str | None
+
+
+def load_track_revision(track_id):
+    _, _, entries, works = read_snapshot()
+    work = next((work for work in works if work["id"] == track_id), None)
+    if work is None:
+        raise ValueError("その曲が見つからないよ。曲一覧を読み直してね。")
+    sha = entries.get(lyrics_path(work["slug"]))
+    return TrackRevision(work, read_blob(sha) if sha is not None else "", sha)
+
+
+def make_track_edit(original, fields):
+    # Keep the exact stored values for fields that were not edited.
+    previous = edit_fields(original)
+    updated = track_metadata(fields)
+    work = {**original.work, **{
+        key: value for key, value in updated.items() if fields[key] != previous[key]
+    }}
+    lyrics = original.lyrics if fields["lyrics"] == previous["lyrics"] else fields["lyrics"]
+    return TrackRevision(work, lyrics, original.lyrics_sha)
+
+
+def edit_fields(revision):
+    work = revision.work
+    return {
+        "title": work["title"],
+        "date": work["date"].replace(".", "-"),
+        "tags": ", ".join(work["tags"]),
+        "youtube": work["youtube"],
+        "tiktok": work["tiktok"],
+        "text": work["text"],
+        "lyrics": revision.lyrics.replace("\r\n", "\n").replace("\r", "\n"),
+    }
+
+
+def publish_edit(original, updated, report, catalog=None):
+    catalog = Catalog() if catalog is None else catalog
+    track_id = original.work["id"]
+    filename = lyrics_path(original.work["slug"])
+    report("GitHubの現在の曲情報を確認中…")
+    head, tree, entries, works = read_snapshot()
+    current = next((work for work in works if work["id"] == track_id), None)
+    current_sha = entries.get(filename)
+    lyrics_changed = updated.lyrics != original.lyrics
+    target_sha = blob_sha(updated.lyrics) if lyrics_changed else original.lyrics_sha
+    if current == updated.work and current_sha == target_sha:
+        catalog.sync_published(entries, works, read_blob)
+        return head
+    if current != original.work or current_sha != original.lyrics_sha:
+        raise RuntimeError("編集中に曲情報か歌詞が変更されたよ。変更内容を控えて、曲を開き直してね。")
+    if updated.work["title"] != current["title"] and any(
+        work["id"] != track_id and work["title"].casefold() == updated.work["title"].casefold()
+        for work in works
+    ):
+        raise ValueError("同じ曲名がすでにあるよ。別の名前にしてね。")
+
+    edited = [updated.work if work["id"] == track_id else work for work in works]
+    files = {}
+    if current != updated.work:
+        files[WORKS_PATH] = json.dumps(edited, ensure_ascii=False, indent=2) + "\n"
+    if lyrics_changed:
+        files[filename] = updated.lyrics
+
+    report("変更した曲情報をGitHubに登録中…")
+    commit = commit_files(head, tree, files, f"Edit Echo Note track: {track_id}")
+    if lyrics_changed:
+        entries = {**entries, filename: target_sha}
+    catalog.sync_published(entries, edited,
+                           lambda sha: updated.lyrics if sha == target_sha and lyrics_changed else read_blob(sha))
+    return commit
+
+
 def publish(track, report, catalog=None):
     catalog = Catalog() if catalog is None else catalog
     track_id = track.work["id"]
@@ -248,16 +341,7 @@ def publish(track, report, catalog=None):
         filename: lyrics,
     }
     report("SQLiteの曲一覧と歌詞をGitHubに登録中…")
-    tree = gh("git/trees", {
-        "base_tree": base_tree,
-        "tree": [{"path": path, "mode": "100644", "type": "blob", "content": content} for path, content in files.items()],
-    })["sha"]
-    commit = gh("git/commits", {
-        "message": f"Add Echo Note track: {track_id}",
-        "tree": tree,
-        "parents": [head],
-    })["sha"]
-    gh(f"git/refs/heads/{BRANCH}", {"sha": commit, "force": False})
+    commit = commit_files(head, base_tree, files, f"Add Echo Note track: {track_id}")
     lyrics_sha = blob_sha(lyrics)
     catalog.sync_published({**entries, filename: lyrics_sha}, exported_works,
                            lambda sha: lyrics if sha == lyrics_sha else read_blob(sha))

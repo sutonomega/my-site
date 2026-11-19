@@ -88,6 +88,20 @@ async function loadLyrics(slug) {
   }
 
 }
+function escapeHtml(value) {
+  const entities = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+  return String(value ?? '').replace(/[&<>"']/g, character => entities[character]);
+}
+
+function externalUrl(value) {
+  try {
+    const url = new URL(value);
+    return url.protocol === 'https:' || url.protocol === 'http:' ? url.href : '';
+  } catch {
+    return '';
+  }
+}
+
 function renderWorks(works) {
 
   const worksContainer =
@@ -117,8 +131,8 @@ function renderTags(works) {
     .map(tag => `
       <button
         class="filter-tag"
-        data-tag="${tag}">
-        #${tag}
+        data-tag="${escapeHtml(tag)}">
+        #${escapeHtml(tag)}
       </button>
     `)
     .join('');
@@ -126,37 +140,17 @@ function renderTags(works) {
 
 function createCard(work) {
 
-  let thumbnailUrl =
-    './images/placeholder.png';
-
-  if (work.youtube) {
-
-    try {
-
-      const videoId =
-        work.youtube
-          .split('v=')[1]
-          ?.split('&')[0];
-
-      thumbnailUrl =
-        `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
-
-    } catch {
-      
-      thumbnailUrl =
-        './images/placeholder.png';
-
-    }
-
-  }
+  const youtube = externalUrl(work.youtube);
+  const videoId = youtube ? new URL(youtube).searchParams.get('v') : null;
+  const thumbnailUrl = /^[A-Za-z0-9_-]{11}$/.test(videoId || '')
+    ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`
+    : './images/placeholder.png';
 
   const isPlaying =
     audio.dataset.slug === work.slug;
 
   return `
-  <div
-    class="work-card-link"
-    onclick="openWork('${work.slug}')">
+  <a class="work-card-link" href="?slug=${encodeURIComponent(work.slug)}">
 
     <div class="work-card">
 
@@ -166,7 +160,7 @@ function createCard(work) {
 
           <img
             src="${thumbnailUrl}"
-            alt="${work.title}"
+            alt="${escapeHtml(work.title)}"
           >
 
         </div>
@@ -183,16 +177,16 @@ function createCard(work) {
       : ''
     }
 
-      <h3>${work.title}</h3>
+      <h3>${escapeHtml(work.title)}</h3>
 
       <div class="work-meta">
 
-        <span>${work.date}</span>
+        <span>${escapeHtml(work.date)}</span>
 
         <div class="tags">
           ${work.tags
       .map(tag =>
-        `<span class="tag">${tag}</span>`
+        `<span class="tag">${escapeHtml(tag)}</span>`
       )
       .join('')}
         </div>
@@ -200,7 +194,7 @@ function createCard(work) {
       </div>
 
       <p>
-        ${work.text}
+        ${escapeHtml(work.text)}
       </p>
 
       <div class="work-links">
@@ -213,7 +207,7 @@ function createCard(work) {
 
     </div>
 
-  </div>
+  </a>
   `;
 }
 
@@ -222,12 +216,18 @@ function initObserver() {
   const cards =
     document.querySelectorAll('.work-card');
 
+  if (!('IntersectionObserver' in window)) {
+    cards.forEach(card => card.classList.add('show'));
+    return;
+  }
+
   const observer =
     new IntersectionObserver((entries) => {
 
       entries.forEach((entry, index) => {
 
         if (entry.isIntersecting) {
+          observer.unobserve(entry.target);
 
           setTimeout(() => {
             entry.target.classList.add('show');
@@ -293,22 +293,12 @@ document.addEventListener('click', (e) => {
   renderWorks(filteredWorks);
 });
 
-document.addEventListener('click', (e) => {
-
-  const link =
-    e.target.closest('.work-link');
-
-  if (!link) return;
-
-  e.preventDefault();
-
-  e.stopPropagation();
-
-  window.open(
-    link.dataset.link,
-    '_blank'
-  );
-
+pageContainer.addEventListener('click', event => {
+  const link = event.target.closest('.work-card-link');
+  if (!link || event.defaultPrevented || event.button !== 0 ||
+      event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+  event.preventDefault();
+  navigateTo(link.href);
 });
 
 window.addEventListener('load', () => {
@@ -336,10 +326,6 @@ window.addEventListener(
   }
 );
 
-function openWork(slug) {
-  navigateTo(`?slug=${encodeURIComponent(slug)}`);
-}
-
 function navigateTo(url) {
   history.pushState({}, '', url);
   renderCurrentPage();
@@ -347,6 +333,8 @@ function navigateTo(url) {
 }
 
 function renderWorkPage(work, lyrics) {
+  const youtube = externalUrl(work.youtube);
+  const tiktok = externalUrl(work.tiktok);
   pageContainer.innerHTML = `
 
   <section class="work-page">
@@ -354,19 +342,18 @@ function renderWorkPage(work, lyrics) {
   <div class="container">
 
     <button
-      class="back-link"
-      onclick="renderHome()">
+      class="back-link">
 
       ← 一覧へ戻る
 
     </button>
 
     <p class="detail-date">
-      ${work.date}
+      ${escapeHtml(work.date)}
     </p>
 
     <h1 class="detail-title">
-      ${work.title}
+      ${escapeHtml(work.title)}
     </h1>
 
     <div class="tags detail-tags">
@@ -374,7 +361,7 @@ function renderWorkPage(work, lyrics) {
       ${work.tags.map(tag => `
 
         <span class="tag">
-          #${tag}
+          #${escapeHtml(tag)}
         </span>
 
       `).join('')}
@@ -382,15 +369,10 @@ function renderWorkPage(work, lyrics) {
     </div>
 
     <p class="detail-text">
-      ${work.text}
+      ${escapeHtml(work.text)}
     </p>
 
-    <button
-      class="play-work-button"
-      onclick="playCurrentWork(
-        '${work.slug}',
-        '${work.title}'
-      )">
+    <button class="play-work-button">
 
       ▶ この曲を再生
 
@@ -398,10 +380,10 @@ function renderWorkPage(work, lyrics) {
 
     <div class="detail-links">
 
-      ${work.youtube ? `
+      ${youtube ? `
         <a
           class="hero-button"
-          href="${work.youtube}"
+          href="${escapeHtml(youtube)}"
           target="_blank"
           rel="noopener noreferrer">
       
@@ -410,10 +392,10 @@ function renderWorkPage(work, lyrics) {
         </a>
       ` : ''}
       
-      ${work.tiktok ? `
+      ${tiktok ? `
         <a
           class="hero-button secondary"
-          href="${work.tiktok}"
+          href="${escapeHtml(tiktok)}"
           target="_blank"
           rel="noopener noreferrer">
       
@@ -430,17 +412,18 @@ function renderWorkPage(work, lyrics) {
         Lyrics
       </h2>
           
-      <div class="lyrics-content">${lyrics ? lyrics.replace(/\n/g, '<br>') : '歌詞はまだ公開されていません。'}</div>
+      <div class="lyrics-content"></div>
       
     </div>
   </div>
 
 </section>
 `;
-}
-
-function renderHome() {
-  navigateTo('./');
+  pageContainer.querySelector('.lyrics-content').textContent = lyrics || '歌詞はまだ公開されていません。';
+  pageContainer.querySelector('.play-work-button').addEventListener('click', () => {
+    playCurrentWork(work.slug, work.title);
+  });
+  pageContainer.querySelector('.back-link').addEventListener('click', () => navigateTo('./'));
 }
 
 window.addEventListener('popstate', renderCurrentPage);

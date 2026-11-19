@@ -1,15 +1,20 @@
 {
   "dependencies": {
-    "kuroshiro": "^1.2.0",
-    "kuroshiro-analyzer-kuromoji": "^1.1.0"
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
   },
   "devDependencies": {
-    "esbuild": "^0.25.12",
-    "typescript": "^5.9.3"
+    "@types/react": "^18.3.31",
+    "@types/react-dom": "^18.3.7",
+    "@vitejs/plugin-react": "^4.7.0",
+    "typescript": "^5.9.3",
+    "vite": "^6.4.6"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "build": "node scripts/build-site.js",
-    "test": "node --test tests/*.test.cjs && python -m unittest discover -s tests -p \"test_*.py\""
+    "build": "tsc --noEmit && vite build && node scripts/copy-site-data.js",
+    "test": "node --test tests/*.test.cjs && python -m unittest discover -s tests -p \"test_*.py\"",
+    "dev": "vite",
+    "preview": "vite preview"
   }
 }

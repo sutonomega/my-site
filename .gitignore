@@ -2,3 +2,4 @@
 /node_modules/
 /tools/track-publisher/__pycache__/
 /tests/__pycache__/
+/dist/

@@ -2,15 +2,15 @@ const works = require('../json/works.json');
 
 async function main(slugs) {
   if (!slugs.length) throw new Error('使い方: node scripts/check-audio.js <slug> [<slug> ...]');
-  const knownSlugs = new Set(works.map(work => work.slug));
+  const knownTracks = new Map(works.flatMap(work => [[work.id ?? work.slug, work], [work.slug, work]]));
   for (const slug of slugs) {
-    if (!/^[a-zA-Z0-9_-]+$/.test(slug) || !knownSlugs.has(slug)) {
+    if (!/^[a-zA-Z0-9_-]+$/.test(slug) || !knownTracks.has(slug)) {
       throw new Error(`works.json に有効な曲IDがありません: ${slug}`);
     }
   }
 
   for (const slug of slugs) {
-    const url = `https://audio.galpachi.com/audio/${slug}.mp3`;
+    const url = `https://audio.galpachi.com/audio/${knownTracks.get(slug).slug}.mp3`;
     const response = await fetch(url, {
       headers: { Range: 'bytes=0-1', Origin: 'https://www.galpachi.com' },
       redirect: 'error',

@@ -37,12 +37,17 @@ async function renderCurrentPage() {
       return;
     }
 
-    const work = works.find(item => item.slug === slug);
+    const work = works.find(item => (item.id ?? item.slug) === slug || item.slug === slug);
     if (!work) {
       showPageMessage('指定された曲が見つかりません。');
       return;
     }
 
+    if (work.id && work.id !== slug) {
+      const canonicalUrl = new URL(location.href);
+      canonicalUrl.searchParams.set('slug', work.id);
+      history.replaceState(history.state, '', canonicalUrl);
+    }
     const lyrics = (await loadLyrics(work.slug)).trim();
     if (id === navigationId) renderWorkPage(work, lyrics);
   } catch {
@@ -150,7 +155,7 @@ function createCard(work) {
     audio.dataset.slug === work.slug;
 
   return `
-  <a class="work-card-link" href="?slug=${encodeURIComponent(work.slug)}">
+  <a class="work-card-link" href="?slug=${encodeURIComponent(work.id ?? work.slug)}">
 
     <div class="work-card">
 

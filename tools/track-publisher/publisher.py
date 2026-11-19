@@ -12,6 +12,7 @@ import shlex
 import subprocess
 from urllib.parse import urlsplit
 from urllib.request import Request, urlopen
+from secrets import token_hex
 
 REPOSITORY = "sutonomega/my-site"
 BRANCH = "main"
@@ -19,6 +20,7 @@ AUDIO_ROOT = "/srv/echo-note/audio"
 SITE_ORIGIN = "https://www.galpachi.com"
 AUDIO_ORIGIN = "https://audio.galpachi.com"
 SLUG = re.compile(r"[a-z0-9][a-z0-9_-]{0,79}")
+TRACK_ID = re.compile(r"track-[a-f0-9]{16}")
 SSH_TARGET = re.compile(r"(?:[A-Za-z0-9_][A-Za-z0-9_.-]*@)?[A-Za-z0-9][A-Za-z0-9_.-]*")
 VIDEO_HOSTS = {
     "youtube": {"youtube.com", "www.youtube.com", "m.youtube.com", "youtu.be"},
@@ -36,6 +38,16 @@ class Track:
     @property
     def slug(self):
         return self.work["slug"]
+
+
+def new_track_id():
+    return f"track-{token_hex(8)}"
+
+
+def track_id_for_slug(slug):
+    if TRACK_ID.fullmatch(slug):
+        return slug
+    return "track-" + hashlib.sha256(f"echo-note:{slug}".encode()).hexdigest()[:16]
 
 
 def make_track(fields):
@@ -72,6 +84,7 @@ def make_track(fields):
     tags = list(dict.fromkeys(part.strip() for part in re.split(r"[,、\n]", fields["tags"]) if part.strip()))
     work = {
         "title": title,
+        "id": track_id_for_slug(slug),
         "slug": slug,
         "text": fields["text"].strip(),
         **urls,
@@ -188,7 +201,8 @@ def inspect_track(track, snapshot):
     existing = next((work for work in works if work["slug"] == track.slug), None)
     if existing == track.work and lyric_sha == blob_sha(track.lyrics):
         return True
-    if existing or lyric_sha:
+    id_taken = any(track.work["id"] in {work.get("id"), work["slug"]} for work in works)
+    if existing or lyric_sha or id_taken:
         raise ValueError("その曲IDはGitHubで使われているよ。別の曲IDにしてね。")
     if any(work.get("title", "").casefold() == track.work["title"].casefold() for work in works):
         raise ValueError("同じ曲名がすでにあるよ。別の曲として出す場合は曲名を区別してね。")

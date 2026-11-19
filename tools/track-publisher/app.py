@@ -5,14 +5,11 @@ import json
 import os
 from pathlib import Path
 import queue
-import re
 import threading
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
-import unicodedata
-from uuid import uuid4
 
-from publisher import SITE_ORIGIN, make_track, publish
+from publisher import SITE_ORIGIN, make_track, new_track_id, publish
 
 DRAFT = Path(os.environ.get("LOCALAPPDATA") or Path.home() / ".config") / "EchoNote" / "track-draft.json"
 
@@ -37,7 +34,7 @@ class TrackForm(ttk.Frame):
         fields = [
             ("audio", "MP3"),
             ("title", "曲名"),
-            ("slug", "曲ID"),
+            ("slug", "曲ID（自動）"),
             ("date", "公開日（YYYY-MM-DD）"),
             ("tags", "タグ（カンマ区切り）"),
             ("youtube", "YouTube URL（任意）"),
@@ -46,7 +43,8 @@ class TrackForm(ttk.Frame):
         ]
         for row, (name, label) in enumerate(fields):
             ttk.Label(self, text=label).grid(row=row, column=0, sticky="nw", padx=(0, 12), pady=3)
-            ttk.Entry(self, textvariable=self.variables[name]).grid(row=row, column=1, sticky="ew", pady=3)
+            state = "readonly" if name == "slug" else "normal"
+            ttk.Entry(self, textvariable=self.variables[name], state=state).grid(row=row, column=1, sticky="ew", pady=3)
         ttk.Button(self, text="選択…", command=self.choose_audio).grid(row=0, column=2, padx=(8, 0))
         self.texts = {}
         for row, (name, label, height) in enumerate(
@@ -58,6 +56,8 @@ class TrackForm(ttk.Frame):
             self.texts[name] = box
         actions = ttk.Frame(self)
         actions.grid(row=10, column=1, columnspan=2, sticky="e", pady=(8, 0))
+        self.new_button = ttk.Button(actions, text="新しい曲", command=self.new_track)
+        self.new_button.pack(side="left", padx=5)
         ttk.Button(actions, text="下書き保存", command=self.save_draft).pack(side="left", padx=5)
         self.publish_button = ttk.Button(actions, text="プレビュー・公開…", command=self.preview)
         self.publish_button.pack(side="left")
@@ -68,6 +68,17 @@ class TrackForm(ttk.Frame):
         self.load_draft()
         self.after(100, self.poll_events)
 
+    def new_track(self):
+        if not messagebox.askyesno("新しい曲", "入力欄を空にして、新しい曲の登録を始める？", parent=self):
+            return
+        for name, variable in self.variables.items():
+            if name != "target":
+                variable.set(date.today().isoformat() if name == "date" else "")
+        for box in self.texts.values():
+            box.delete("1.0", "end")
+        self.save_draft()
+        self.status.set("新しいMP3を選択してね。")
+
     def choose_audio(self):
         selected = filedialog.askopenfilename(filetypes=[("MP3音源", "*.mp3")])
         if not selected:
@@ -76,10 +87,12 @@ class TrackForm(ttk.Frame):
         title = self.variables["title"]
         if not title.get().strip():
             title.set(Path(selected).stem)
+        self.ensure_track_id()
+
+    def ensure_track_id(self):
         slug = self.variables["slug"]
-        if not slug.get().strip():
-            romanized = unicodedata.normalize("NFKD", title.get()).encode("ascii", "ignore").decode().lower()
-            slug.set(re.sub(r"[^a-z0-9]+", "-", romanized).strip("-")[:80] or f"track-{uuid4().hex[:10]}")
+        if not slug.get():
+            slug.set(new_track_id())
 
     def values(self):
         return {
@@ -117,6 +130,7 @@ class TrackForm(ttk.Frame):
             self.status.set("下書きを保存したよ。")
 
     def preview(self):
+        self.ensure_track_id()
         try:
             track = make_track(self.values())
         except (ValueError, OSError) as error:
@@ -131,7 +145,7 @@ class TrackForm(ttk.Frame):
             work["title"],
             f"公開日　{work['date']}",
             f"タグ　{' / '.join(work['tags']) or 'なし'}",
-            f"曲ページ　{SITE_ORIGIN}/?slug={track.slug}",
+            f"曲ページ　{SITE_ORIGIN}/?slug={track.work['id']}",
             f"音源　{track.audio.name}",
             f"転送先　{track.target}",
             *[work[key] for key in ("youtube", "tiktok") if work[key]],
@@ -153,6 +167,7 @@ class TrackForm(ttk.Frame):
         dialog.destroy()
         self.save_draft()
         self.publish_button.state(["disabled"])
+        self.new_button.state(["disabled"])
         self.status.set("公開の準備中…")
         threading.Thread(target=self.publish_track, args=(track,), daemon=False).start()
 
@@ -162,7 +177,7 @@ class TrackForm(ttk.Frame):
         except Exception as error:
             self.events.put(("error", f"{error}\n\n原因を解消したら、同じ曲ID・音源で再試行できるよ。"))
         else:
-            self.events.put(("success", f"GitHubへの登録が完了したよ。GitHub Pagesの反映後に開けるURL\n{SITE_ORIGIN}/?slug={track.slug}\nコミット {commit[:12]}"))
+            self.events.put(("success", f"GitHubへの登録が完了したよ。GitHub Pagesの反映後に開けるURL\n{SITE_ORIGIN}/?slug={track.work['id']}\nコミット {commit[:12]}"))
 
     def poll_events(self):
         while not self.events.empty():
@@ -171,6 +186,7 @@ class TrackForm(ttk.Frame):
                 self.status.set(message)
             else:
                 self.publish_button.state(["!disabled"])
+                self.new_button.state(["!disabled"])
                 self.status.set("GitHubに登録したよ。" if kind == "success" else "公開処理が途中で止まったよ。")
                 if kind == "success":
                     messagebox.showinfo("登録完了", message, parent=self)

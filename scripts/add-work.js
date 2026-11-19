@@ -1,43 +1,12 @@
 const fs = require("fs");
 const path = require("path");
-const Kuroshiro = require("kuroshiro").default;
-const KuromojiAnalyzer = require("kuroshiro-analyzer-kuromoji");
+const { randomBytes } = require("node:crypto");
 
 const worksPath = path.join(__dirname, "../json/works.json");
 const listPath = path.join(__dirname, "song-list.txt");
 const lyricsDir = path.join(__dirname, "../lyrics");
 
-function formatDate(date) {
-  return (
-    `${date.getFullYear()}.` +
-    `${String(date.getMonth() + 1).padStart(2, "0")}.` +
-    `${String(date.getDate()).padStart(2, "0")}`
-  );
-}
-
-function cleanSlug(text) {
-  return text
-    .toLowerCase()
-    .replace(/\s+/g, "-")
-    .replace(/[^a-z0-9-]/g, "")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "");
-}
-
-async function titleToSlug(kuroshiro, title) {
-  const romaji = await kuroshiro.convert(title, {
-    to: "romaji",
-    mode: "spaced",
-    romajiSystem: "hepburn",
-  });
-
-  return cleanSlug(romaji);
-}
-
-async function main() {
-  const kuroshiro = new Kuroshiro();
-  await kuroshiro.init(new KuromojiAnalyzer());
-
+function main() {
   const works = JSON.parse(fs.readFileSync(worksPath, "utf8"));
 
   const titles = fs
@@ -47,9 +16,7 @@ async function main() {
     .filter(Boolean);
 
   const existingTitles = new Set(works.map((work) => work.title));
-  const existingSlugs = new Set(works.map((work) => work.slug));
-
-  const today = formatDate(new Date());
+  const existingIds = new Set(works.flatMap(work => [work.id, work.slug]));
 
   const newWorks = [];
 
@@ -59,20 +26,18 @@ async function main() {
       continue;
     }
 
-    let slug = await titleToSlug(kuroshiro, title);
-    const baseSlug = slug;
+    let id;
+    do {
+      id = `track-${randomBytes(8).toString("hex")}`;
+    } while (existingIds.has(id));
 
-    let count = 2;
-    while (existingSlugs.has(slug)) {
-      slug = `${baseSlug}-${count}`;
-      count += 1;
-    }
-
-    existingSlugs.add(slug);
+    existingIds.add(id);
+    existingTitles.add(title);
 
     newWorks.push({
       title,
-      slug,
+      id,
+      slug: id,
       text: "",
       youtube: "",
       tiktok: "",
@@ -80,13 +45,13 @@ async function main() {
       tags: [],
     });
 
-    const lyricsPath = path.join(lyricsDir, `${slug}.md`);
+    const lyricsPath = path.join(lyricsDir, `${id}.md`);
 
     if (!fs.existsSync(lyricsPath)) {
       fs.writeFileSync(lyricsPath, "", "utf8");
     }
 
-    console.log(`added: ${title} / ${slug}`);
+    console.log(`added: ${title} / ${id}`);
   }
 
   works.unshift(...newWorks);
@@ -96,7 +61,9 @@ async function main() {
   console.log(`${newWorks.length}件追加しました`);
 }
 
-main().catch((error) => {
+try {
+  main();
+} catch (error) {
   console.error(error);
-  process.exit(1);
-});
+  process.exitCode = 1;
+}

@@ -160,6 +160,8 @@ function createCard(work) {
 
           <img
             src="${thumbnailUrl}"
+            loading="lazy"
+            decoding="async"
             alt="${escapeHtml(work.title)}"
           >
 

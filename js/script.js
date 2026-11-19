@@ -1,42 +1,68 @@
-const homeHTML =
-  document.getElementById(
-    'page-container'
-  ).innerHTML;
+const pageContainer = document.getElementById('page-container');
+const homeHTML = pageContainer.innerHTML;
 
 let allWorks = [];
 
 let activeTag = null;
 
-async function loadWorks() {
+let worksRequest;
+let navigationId = 0;
 
-  const params =
-    new URLSearchParams(
-      window.location.search
-    );
+function loadWorks() {
+  if (!worksRequest) {
+    worksRequest = fetch('./json/works.json').then(response => {
+      if (!response.ok) throw new Error('作品一覧を取得できませんでした。');
+      return response.json();
+    }).catch(error => {
+      worksRequest = undefined;
+      throw error;
+    });
+  }
+  return worksRequest;
+}
 
-  const slug =
-    params.get('slug');
+async function renderCurrentPage() {
+  const id = ++navigationId;
+  const slug = new URLSearchParams(location.search).get('slug');
+  try {
+    const works = await loadWorks();
+    if (id !== navigationId) return;
 
-  const response =
-    await fetch('./json/works.json');
+    if (slug === null) {
+      allWorks = works;
+      activeTag = null;
+      pageContainer.innerHTML = homeHTML;
+      renderTags(works);
+      renderWorks(works);
+      return;
+    }
 
-  const works =
-    await response.json();
+    const work = works.find(item => item.slug === slug);
+    if (!work) {
+      showPageMessage('指定された曲が見つかりません。');
+      return;
+    }
 
-  allWorks = works;
-
-  renderTags(works);
-
-  renderWorks(works);
-
-  if (slug) {
-
-    renderWorkPage(slug);
-
+    const lyrics = (await loadLyrics(work.slug)).trim();
+    if (id === navigationId) renderWorkPage(work, lyrics);
+  } catch {
+    if (id === navigationId) {
+      showPageMessage('作品一覧を読み込めませんでした。時間をおいて再度お試しください。');
+    }
   }
 }
 
-loadWorks();
+function showPageMessage(message) {
+  const section = document.createElement('section');
+  section.className = 'work-page container';
+  const heading = document.createElement('h1');
+  heading.textContent = message;
+  const link = document.createElement('a');
+  link.href = './';
+  link.textContent = '一覧へ戻る';
+  section.append(heading, link);
+  pageContainer.replaceChildren(section);
+}
 
 async function loadLyrics(slug) {
 
@@ -311,42 +337,16 @@ window.addEventListener(
 );
 
 function openWork(slug) {
-
-  history.pushState(
-    {},
-    '',
-    `?slug=${slug}`
-  );
-
-  renderWorkPage(slug);
-
-  window.scrollTo({
-    top: 0,
-    behavior: 'auto'
-  });
+  navigateTo(`?slug=${encodeURIComponent(slug)}`);
 }
-async function renderWorkPage(slug) {
 
-  const response =
-    await fetch('./json/works.json');
+function navigateTo(url) {
+  history.pushState({}, '', url);
+  renderCurrentPage();
+  window.scrollTo({ top: 0, behavior: 'auto' });
+}
 
-  const works =
-    await response.json();
-
-  const work =
-    works.find(
-      item => item.slug === slug
-    );
-  const lyrics =
-    (
-      await loadLyrics(work.slug)
-    ).trim();
-
-  const pageContainer =
-    document.getElementById(
-      'page-container'
-    );
-
+function renderWorkPage(work, lyrics) {
   pageContainer.innerHTML = `
 
   <section class="work-page">
@@ -440,45 +440,11 @@ async function renderWorkPage(slug) {
 }
 
 function renderHome() {
-
-  history.pushState(
-    {},
-    '',
-    './'
-  );
-
-  document.getElementById(
-    'page-container'
-  ).innerHTML = homeHTML;
-
-  loadWorks();
-
+  navigateTo('./');
 }
 
-window.addEventListener(
-  'popstate',
-  () => {
-
-    const params =
-      new URLSearchParams(
-        window.location.search
-      );
-
-    const slug =
-      params.get('slug');
-
-    if (slug) {
-
-      renderWorkPage(slug);
-
-    } else {
-
-      renderHome();
-
-    }
-
-  }
-);
+window.addEventListener('popstate', renderCurrentPage);
+renderCurrentPage();
 
 function getAudioUrl(slug) {
   return `https://audio.galpachi.com/audio/${slug}.mp3`;

@@ -1,10 +1,10 @@
 const assert = require('node:assert/strict');
 const { test } = require('node:test');
 const { tracks, unknownId, audio } = require('./catalog-fixtures.json');
-const { audioUrl, findTrack, lyricsPath, publicTrackId, savedAudioKey, trackPagePath } = require('../shared/tracks.cjs');
 const { validAudioResponse } = require('../shared/audio-check.cjs');
 
-test('published and retired track IDs resolve to the same files', () => {
+test('published and retired track IDs resolve to the same files', async () => {
+  const { audioUrl, findTrack, lyricsPath, publicTrackId, savedAudioKey, trackPagePath } = await import('../shared/tracks.mjs');
   for (const track of tracks) {
     for (const id of track.lookup) assert.equal(findTrack(tracks, id), track);
     assert.equal(publicTrackId(track), track.id);

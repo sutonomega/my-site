@@ -15,10 +15,12 @@ Cloudflare Tunnelは音声用ホストの `/audio/<slug>.mp3` をUbuntuの `http
 | パス | 役割 |
 | --- | --- |
 | `index.html` | ホームの基本構造、共通の音声要素とミニプレーヤー |
-| `src/main.ts` / `src/views.ts` | 曲データの取得・画面遷移・タグ絞り込みと、再利用する描画部品 |
-| `src/player.ts` / `src/types.ts` | 音源の再生、シーク、復元と、曲データ・再生状態の型 |
+| `src/main.tsx` / `src/App.tsx` | Reactの起点、曲データの取得、URLに応じた画面切り替え |
+| `src/Home.tsx` / `src/WorkViews.tsx` | 作品一覧・タグ絞り込み、曲カード・曲詳細の表示部品 |
+| `src/MiniPlayer.tsx` / `src/types.ts` | 画面遷移をまたぐ音源の再生・シーク・復元と、曲データ・再生状態の型 |
 | `config/` / `shared/` | 公開設定と、曲ID・ファイル名・音源応答の共通処理 |
-| `js/site.js` | `npm run build` で生成するGitHub Pages向けJavaScript |
+| `vite.config.ts` / `dist/` | Viteのビルド設定とGitHub Pagesへアップロードする配信ファイル |
+| `.github/workflows/deploy.yml` | 検証ビルドと、`main` からのGitHub Pages公開 |
 | `css/style.css` | 共通レイアウト、レスポンシブ表示、プレーヤーのスタイル |
 | `json/works.json` | 曲メタデータの配列 |
 | `lyrics/<slug>.md` | 曲ごとの歌詞。ブラウザーには改行付きのプレーンテキストとして表示する。 |
@@ -39,7 +41,7 @@ Cloudflare Tunnelは音声用ホストの `/audio/<slug>.mp3` をUbuntuの `http
 
 ## 画面とプレーヤーの状態
 
-曲一覧はページ内で共有し、画面切り替え時の歌詞取得が古い画面を後から上書きしないようにする。曲詳細への移動ではブラウザー履歴を更新し、戻る・進むでは既存のURLから画面を描画する。共通の音声要素は画面描画の対象外に置く。
+曲一覧はページ内で共有し、画面切り替え時の歌詞取得が古い画面を後から上書きしないようにする。曲詳細への移動ではブラウザー履歴を更新し、戻る・進むでは既存のURLから画面を描画する。ミニプレーヤーを一覧・曲詳細と同じ階層の独立したReact部品として常時マウントし、画面切り替えで音声要素が作り直されないようにする。
 
 プレーヤーは再生URL、曲名、再生位置、一時停止状態を `localStorage` の `echo-note-player` に保存する。復元時は保存URLから音源のファイル名を取り出し、現行の配信先を組み立てる。これにより旧GitHub Pages配信時のURLも読み替えられる。
 

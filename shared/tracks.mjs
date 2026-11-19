@@ -1,5 +1,5 @@
-const site = require('../config/site.json');
-const tracks = require('../config/tracks.json');
+import site from '../config/site.json' with { type: 'json' };
+import tracks from '../config/tracks.json' with { type: 'json' };
 const validKey = new RegExp(tracks.assetKeyPattern);
 
 function publicTrackId(work) {
@@ -35,4 +35,4 @@ function savedAudioKey(value, base) {
   return validKey.test(key) ? key : undefined;
 }
 
-module.exports = { publicTrackId, findTrack, trackPagePath, lyricsPath, audioFilename, audioUrl, savedAudioKey };
+export { publicTrackId, findTrack, trackPagePath, lyricsPath, audioFilename, audioUrl, savedAudioKey };

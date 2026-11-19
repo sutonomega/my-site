@@ -2,10 +2,10 @@ const site = require('../config/site.json');
 const tracks = require('../config/tracks.json');
 const rules = require('../config/audio-check.json');
 const works = require('../' + site.worksPath);
-const { audioUrl, findTrack } = require('../shared/tracks.cjs');
 const { range, validAudioResponse } = require('../shared/audio-check.cjs');
 
 async function main(ids) {
+  const { audioUrl, findTrack } = await import('../shared/tracks.mjs');
   if (!ids.length) throw new Error('使い方: node scripts/check-audio.js <曲ID> [<曲ID> ...]');
   const validKey = new RegExp(tracks.assetKeyPattern);
   const selected = ids.map(id => {

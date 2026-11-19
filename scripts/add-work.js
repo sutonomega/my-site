@@ -1,10 +1,12 @@
 const fs = require("fs");
 const path = require("path");
 const { randomBytes } = require("node:crypto");
+const site = require("../config/site.json");
+const tracks = require("../config/tracks.json");
+const { lyricsPath } = require("../shared/tracks.cjs");
 
-const worksPath = path.join(__dirname, "../json/works.json");
+const worksPath = path.join(__dirname, "..", site.worksPath);
 const listPath = path.join(__dirname, "song-list.txt");
-const lyricsDir = path.join(__dirname, "../lyrics");
 
 function main() {
   const works = JSON.parse(fs.readFileSync(worksPath, "utf8"));
@@ -28,7 +30,7 @@ function main() {
 
     let id;
     do {
-      id = `track-${randomBytes(8).toString("hex")}`;
+      id = `${tracks.idPrefix}${randomBytes(tracks.idBytes).toString("hex")}`;
     } while (existingIds.has(id));
 
     existingIds.add(id);
@@ -45,10 +47,10 @@ function main() {
       tags: [],
     });
 
-    const lyricsPath = path.join(lyricsDir, `${id}.md`);
+    const filename = path.join(__dirname, "..", lyricsPath(id));
 
-    if (!fs.existsSync(lyricsPath)) {
-      fs.writeFileSync(lyricsPath, "", "utf8");
+    if (!fs.existsSync(filename)) {
+      fs.writeFileSync(filename, "", "utf8");
     }
 
     console.log(`added: ${title} / ${id}`);

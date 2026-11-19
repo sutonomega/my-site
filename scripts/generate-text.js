@@ -1,8 +1,9 @@
 const fs = require("fs");
 const path = require("path");
 
-const worksPath = path.join(__dirname, "../json/works.json");
-const lyricsDir = path.join(__dirname, "../lyrics");
+const site = require("../config/site.json");
+const { lyricsPath } = require("../shared/tracks.cjs");
+const worksPath = path.join(__dirname, "..", site.worksPath);
 
 const OLLAMA_MODEL = "qwen2.5:3b";
 
@@ -140,14 +141,14 @@ async function main() {
       continue;
     }
 
-    const lyricsPath = path.join(lyricsDir, `${work.slug}.md`);
+    const filename = path.join(__dirname, "..", lyricsPath(work.slug));
 
-    if (!fs.existsSync(lyricsPath)) {
+    if (!fs.existsSync(filename)) {
       console.log(`lyrics not found: ${work.title}`);
       continue;
     }
 
-    const lyrics = fs.readFileSync(lyricsPath, "utf8").trim();
+    const lyrics = fs.readFileSync(filename, "utf8").trim();
 
     if (!lyrics) {
       console.log(`lyrics empty: ${work.title}`);

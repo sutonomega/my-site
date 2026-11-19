@@ -1,41 +1,17 @@
-const fs = require('fs');
-const path = require('path');
+const fs = require('node:fs');
+const path = require('node:path');
+const site = require('../config/site.json');
+const { lyricsPath } = require('../shared/tracks.cjs');
+const works = require('../' + site.worksPath);
 
-const works =
-  require('../json/works.json');
-
-const lyricsDir =
-  path.join(__dirname, '../lyrics');
-
-if (!fs.existsSync(lyricsDir)) {
-  fs.mkdirSync(lyricsDir);
-}
-
-works.forEach(work => {
-
-  const filePath = path.join(
-    lyricsDir,
-    `${work.slug}.md`
-  );
-
-  if (!fs.existsSync(filePath)) {
-
-    fs.writeFileSync(
-      filePath,
-      '',
-      'utf8'
-    );
-
-    console.log(
-      `created: ${work.slug}.md`
-    );
-
-  } else {
-
-    console.log(
-      `skip: ${work.slug}.md`
-    );
-
+for (const work of works) {
+  const filename = path.join(__dirname, '..', lyricsPath(work.slug));
+  fs.mkdirSync(path.dirname(filename), { recursive: true });
+  try {
+    fs.writeFileSync(filename, '', { encoding: 'utf8', flag: 'wx' });
+    console.log(`created: ${path.basename(filename)}`);
+  } catch (error) {
+    if (error.code !== 'EEXIST') throw error;
+    console.log(`skip: ${path.basename(filename)}`);
   }
-
-});
+}

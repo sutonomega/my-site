@@ -18,9 +18,21 @@ WindowsでMP3と曲情報をまとめて追加する場合は、[曲の登録ツ
 
 `scripts/rename-audio.js` を使う場合は、リポジトリ内のローカル作業用 `audio/` に `<曲名>.mp3` を置いて実行する。ここは名前変更用の一時作業場所で、公開先はUbuntu。MP3と `node_modules/` はGitの管理対象から外してある。
 
+## サイトを変更する
+
+```sh
+npm ci
+npm run typecheck
+npm test
+npm run build
+```
+
+公開画面のTypeScriptは `src/`、共通の曲情報処理は `shared/` にある。`npm test` は Node.js と Python 3.11 以上を使い、曲IDと音源取得の共通テストを実行する。GitHub Pagesはコミット済みの `js/site.js` を配信するので、画面コードや共通設定を変更したら、ビルド結果も同じコミットに入れる。
+
 ## 主な構成
 
-- `index.html`、`css/`、`js/` は公開ページとプレーヤー。
+- `index.html`、`css/`、`src/` は公開ページとプレーヤー。`js/site.js` はビルド出力。
+- `config/` は公開URL・曲ID・音声確認の共通設定。Ubuntuの接続先と認証情報は含めない。
 - `json/works.json` と `lyrics/` は曲のメタデータと歌詞。
 - `scripts/` は楽曲の追加・整形・配信確認に使う作業用スクリプト。
 

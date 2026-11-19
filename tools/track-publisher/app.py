@@ -9,9 +9,16 @@ import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 
 from catalog import DATA_DIR
-from publisher import SITE_ORIGIN, make_track, new_track_id, publish
+from publisher import make_track, new_track_id, publish
+from settings import SITE
+from urllib.parse import urlencode
 
 DRAFT = DATA_DIR / "track-draft.json"
+
+
+def public_track_url(track):
+    query = urlencode({SITE["trackQuery"]: track.work["id"]})
+    return f"{SITE['siteOrigin']}/?{query}"
 
 
 class TrackForm(ttk.Frame):
@@ -145,7 +152,7 @@ class TrackForm(ttk.Frame):
             work["title"],
             f"公開日　{work['date']}",
             f"タグ　{' / '.join(work['tags']) or 'なし'}",
-            f"曲ページ　{SITE_ORIGIN}/?slug={track.work['id']}",
+            f"曲ページ　{public_track_url(track)}",
             f"音源　{track.audio.name}",
             f"転送先　{track.target}",
             *[work[key] for key in ("youtube", "tiktok") if work[key]],
@@ -177,7 +184,7 @@ class TrackForm(ttk.Frame):
         except Exception as error:
             self.events.put(("error", f"{error}\n\n原因を解消したら、同じ曲ID・音源で再試行できるよ。"))
         else:
-            self.events.put(("success", f"GitHubへの登録が完了したよ。GitHub Pagesの反映後に開けるURL\n{SITE_ORIGIN}/?slug={track.work['id']}\nコミット {commit[:12]}"))
+            self.events.put(("success", f"GitHubへの登録が完了したよ。GitHub Pagesの反映後に開けるURL\n{public_track_url(track)}\nコミット {commit[:12]}"))
 
     def poll_events(self):
         while not self.events.empty():

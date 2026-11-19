@@ -1,21 +1,22 @@
-const audio = document.getElementById('global-audio');
-const miniPlayer = document.getElementById('mini-player');
-const miniPlay = document.getElementById('mini-play');
-const miniTitle = document.getElementById('mini-title');
-const progress = document.getElementById('mini-progress');
-const volumeSlider = document.getElementById('volume-slider');
-const currentTimeText = document.getElementById('current-time');
-const durationText = document.getElementById('duration');
-const playerMessage = document.getElementById('player-message');
+import { audioUrl, savedAudioKey } from '../shared/tracks.cjs';
+import { requireElement } from './dom';
+import type { SavedPlayerState } from './types';
+
+export const audio = requireElement('#global-audio', HTMLAudioElement);
+const miniPlayer = requireElement('#mini-player', HTMLElement);
+const miniPlay = requireElement('#mini-play', HTMLButtonElement);
+const miniTitle = requireElement('#mini-title', HTMLElement);
+const progress = requireElement('#mini-progress', HTMLInputElement);
+const volumeSlider = requireElement('#volume-slider', HTMLInputElement);
+const currentTimeText = requireElement('#current-time', HTMLElement);
+const durationText = requireElement('#duration', HTMLElement);
+const playerMessage = requireElement('#player-message', HTMLElement);
+
 const playerKey = 'echo-note-player';
-let pendingRestore;
+let pendingRestore: SavedPlayerState | undefined;
 
-function getAudioUrl(slug) {
-  return `https://audio.galpachi.com/audio/${slug}.mp3`;
-}
-
-function selectTrack(slug, title) {
-  const source = getAudioUrl(slug);
+function selectTrack(slug: string, title: string) {
+  const source = audioUrl(slug);
   if (audio.src !== source) {
     pendingRestore = undefined;
     progress.disabled = true;
@@ -39,14 +40,15 @@ async function startPlayback() {
     if (audio.error) audio.load();
     await audio.play();
   } catch (error) {
-    if (audio.src !== source || error.name === 'AbortError') return;
-    playerMessage.textContent = error.name === 'NotAllowedError'
+    const name = error instanceof Error ? error.name : "";
+    if (audio.src !== source || name === 'AbortError') return;
+    playerMessage.textContent = name === 'NotAllowedError'
       ? '再生ボタンを押すと続きから再生できます。'
       : '音源を再生できませんでした。時間をおいて再度お試しください。';
   }
 }
 
-function playCurrentWork(slug, title) {
+export function playCurrentWork(slug: string, title: string) {
   selectTrack(slug, title);
   startPlayback();
 }
@@ -54,12 +56,13 @@ function playCurrentWork(slug, title) {
 function savePlayerState() {
   if (!audio.dataset.slug || audio.readyState < HTMLMediaElement.HAVE_METADATA || audio.error) return;
   try {
-    localStorage.setItem(playerKey, JSON.stringify({
+    const state: SavedPlayerState = {
       src: audio.src,
       title: audio.dataset.title,
       time: audio.currentTime,
       paused: audio.paused || audio.ended
-    }));
+    };
+    localStorage.setItem(playerKey, JSON.stringify(state));
   } catch {
     // Playback remains available when storage is blocked or full.
   }
@@ -67,19 +70,25 @@ function savePlayerState() {
 
 function loadPlayerState() {
   try {
-    const saved = JSON.parse(localStorage.getItem(playerKey));
+    const raw = localStorage.getItem(playerKey);
+    if (!raw) return;
+    const saved: Partial<SavedPlayerState> | null = JSON.parse(raw);
     if (typeof saved?.src !== 'string' || !saved.src) return;
-    const source = new URL(saved.src, document.baseURI);
-    const track = source.pathname.match(/\/audio\/([A-Za-z0-9_-]+)[.]mp3$/);
-    if (!track) return;
-    selectTrack(track[1], typeof saved.title === 'string' ? saved.title : '');
-    pendingRestore = saved;
+    const slug = savedAudioKey(saved.src, document.baseURI);
+    if (!slug) return;
+    selectTrack(slug, typeof saved.title === 'string' ? saved.title : '');
+    pendingRestore = {
+      src: saved.src,
+      title: audio.dataset.title,
+      time: typeof saved.time === 'number' ? saved.time : 0,
+      paused: Boolean(saved.paused),
+    };
   } catch {
     // An invalid saved record does not affect fresh playback.
   }
 }
 
-function formatTime(time) {
+function formatTime(time: number) {
   const minutes = Math.floor(time / 60);
   const seconds = String(Math.floor(time % 60)).padStart(2, '0');
   return `${minutes}:${seconds}`;
@@ -88,8 +97,8 @@ function formatTime(time) {
 function updateProgress() {
   const canSeek = Number.isFinite(audio.duration) && audio.duration > 0 && !audio.error;
   progress.disabled = !canSeek;
-  progress.max = canSeek ? audio.duration : 0;
-  progress.value = canSeek ? audio.currentTime : 0;
+  progress.max = String(canSeek ? audio.duration : 0);
+  progress.value = String(canSeek ? audio.currentTime : 0);
   currentTimeText.textContent = formatTime(audio.currentTime);
   durationText.textContent = canSeek ? formatTime(audio.duration) : '-:--';
 }

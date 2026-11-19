@@ -6,6 +6,7 @@ import json
 import os
 from pathlib import Path
 import sqlite3
+from settings import lyrics_path
 
 DATA_DIR = Path(os.environ.get("LOCALAPPDATA") or Path.home() / ".config") / "EchoNote"
 CATALOG_PATH = DATA_DIR / "catalog.sqlite3"
@@ -43,7 +44,7 @@ class Catalog:
         """Refresh the published catalog without changing a pending registration."""
         with closing(self.connect()) as db:
             cached = dict(db.execute("SELECT lyrics_sha, lyrics FROM tracks"))
-            paths = [f"lyrics/{work['slug']}.md" for work in works]
+            paths = [lyrics_path(work["slug"]) for work in works]
             for filename in paths:
                 if filename not in entries:
                     raise RuntimeError(f"GitHubに既存の歌詞ファイルが見つからないよ: {filename}")

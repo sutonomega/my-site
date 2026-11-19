@@ -15,15 +15,17 @@ from urllib.parse import urlsplit
 from urllib.request import Request, urlopen
 from secrets import token_hex
 
+from audio_check import LENGTH, RANGE, RULES, response_size
 from catalog import Catalog
+from settings import SITE, TRACKS, audio_filename, audio_url, lyrics_path
 
 REPOSITORY = "sutonomega/my-site"
 BRANCH = "main"
 AUDIO_ROOT = "/srv/echo-note/audio"
-SITE_ORIGIN = "https://www.galpachi.com"
-AUDIO_ORIGIN = "https://audio.galpachi.com"
+SITE_ORIGIN = SITE["siteOrigin"]
+WORKS_PATH = SITE["worksPath"]
 SLUG = re.compile(r"[a-z0-9][a-z0-9_-]{0,79}")
-TRACK_ID = re.compile(r"track-[a-f0-9]{16}")
+TRACK_ID = re.compile(re.escape(TRACKS["idPrefix"]) + rf"[a-f0-9]{{{TRACKS['idBytes'] * 2}}}")
 SSH_TARGET = re.compile(r"(?:[A-Za-z0-9_][A-Za-z0-9_.-]*@)?[A-Za-z0-9][A-Za-z0-9_.-]*")
 VIDEO_HOSTS = {
     "youtube": {"youtube.com", "www.youtube.com", "m.youtube.com", "youtu.be"},
@@ -44,13 +46,14 @@ class Track:
 
 
 def new_track_id():
-    return f"track-{token_hex(8)}"
+    return TRACKS["idPrefix"] + token_hex(TRACKS["idBytes"])
 
 
 def track_id_for_slug(slug):
     if TRACK_ID.fullmatch(slug):
         return slug
-    return "track-" + hashlib.sha256(f"echo-note:{slug}".encode()).hexdigest()[:16]
+    digest = hashlib.sha256((TRACKS["legacyIdNamespace"] + slug).encode()).hexdigest()
+    return TRACKS["idPrefix"] + digest[:TRACKS["idBytes"] * 2]
 
 
 def make_track(fields):
@@ -130,7 +133,7 @@ def read_snapshot():
     if tree.get("truncated"):
         raise RuntimeError("GitHubのファイル一覧をすべて取得できなかったよ。")
     entries = {entry["path"]: entry["sha"] for entry in tree["tree"]}
-    works = json.loads(read_blob(entries["json/works.json"]))
+    works = json.loads(read_blob(entries[WORKS_PATH]))
     return head, tree_sha, entries, works
 
 
@@ -161,9 +164,9 @@ fi
         checksum = hashlib.file_digest(source, "sha256").hexdigest()
         size = os.fstat(source.fileno()).st_size
         source.seek(0)
-        prefix = source.read(2)
+        prefix = source.read(LENGTH)
         source.seek(0)
-        command = shlex.join(["bash", "-c", remote, "echo-note-upload", AUDIO_ROOT, f"{track.slug}.mp3", checksum])
+        command = shlex.join(["bash", "-c", remote, "echo-note-upload", AUDIO_ROOT, audio_filename(track.slug), checksum])
         result = subprocess.run(
             ["ssh", "-T", "-o", "BatchMode=yes", "-o", "StrictHostKeyChecking=yes", "-o", "ConnectTimeout=10", track.target, command],
             stdin=source,
@@ -178,22 +181,19 @@ fi
 
 
 def verify_audio(track, size, prefix):
-    url = f"{AUDIO_ORIGIN}/audio/{track.slug}.mp3"
+    url = audio_url(track.slug)
     request = Request(url, headers={
-        "Range": "bytes=0-1",
+        "Range": RANGE,
         "Origin": SITE_ORIGIN,
         "Cache-Control": "no-cache",
         "User-Agent": "EchoNote-TrackPublisher/1.0",
     })
-    with urlopen(request, timeout=20) as response:
-        if (
-            response.geturl() != url
-            or response.status != 206
-            or response.headers.get_content_type() != "audio/mpeg"
-            or response.headers.get("Content-Range") != f"bytes 0-1/{size}"
-            or response.headers.get("Access-Control-Allow-Origin") not in {SITE_ORIGIN, "*"}
-            or response.read(3) != prefix
-        ):
+    with urlopen(request, timeout=RULES["timeoutSeconds"]) as response:
+        headers = {key.lower(): value for key, value in response.headers.items()}
+        result = response.read(LENGTH + 1)
+        if (response.geturl() != url
+                or response_size(response.status, headers, len(result)) != size
+                or result != prefix):
             raise RuntimeError("公開URLの部分取得結果が、配置したMP3・配信条件と一致しなかったよ。")
 
 
@@ -204,8 +204,8 @@ def blob_sha(content):
 
 def inspect_track(track, snapshot):
     _, _, entries, works = snapshot
-    lyrics_path = f"lyrics/{track.slug}.md"
-    lyric_sha = entries.get(lyrics_path)
+    filename = lyrics_path(track.slug)
+    lyric_sha = entries.get(filename)
     existing = next((work for work in works if work["slug"] == track.slug), None)
     if existing == track.work and lyric_sha == blob_sha(track.lyrics):
         return True
@@ -242,10 +242,10 @@ def publish(track, report, catalog=None):
     exported_works, lyrics = catalog.export(track_id)
     if exported_works != [track.work, *works] or lyrics != track.lyrics:
         raise RuntimeError("別のウィンドウで曲情報が変わったよ。入力を確認して再試行してね。")
-    lyrics_path = f"lyrics/{track.slug}.md"
+    filename = lyrics_path(track.slug)
     files = {
-        "json/works.json": json.dumps(exported_works, ensure_ascii=False, indent=2) + "\n",
-        lyrics_path: lyrics,
+        WORKS_PATH: json.dumps(exported_works, ensure_ascii=False, indent=2) + "\n",
+        filename: lyrics,
     }
     report("SQLiteの曲一覧と歌詞をGitHubに登録中…")
     tree = gh("git/trees", {
@@ -259,7 +259,7 @@ def publish(track, report, catalog=None):
     })["sha"]
     gh(f"git/refs/heads/{BRANCH}", {"sha": commit, "force": False})
     lyrics_sha = blob_sha(lyrics)
-    catalog.sync_published({**entries, lyrics_path: lyrics_sha}, exported_works,
+    catalog.sync_published({**entries, filename: lyrics_sha}, exported_works,
                            lambda sha: lyrics if sha == lyrics_sha else read_blob(sha))
     catalog.complete(track_id)
     return commit

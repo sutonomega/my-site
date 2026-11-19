@@ -1,33 +1,35 @@
-const works = require('../json/works.json');
+const site = require('../config/site.json');
+const tracks = require('../config/tracks.json');
+const rules = require('../config/audio-check.json');
+const works = require('../' + site.worksPath);
+const { audioUrl, findTrack } = require('../shared/tracks.cjs');
+const { range, validAudioResponse } = require('../shared/audio-check.cjs');
 
-async function main(slugs) {
-  if (!slugs.length) throw new Error('使い方: node scripts/check-audio.js <slug> [<slug> ...]');
-  const knownTracks = new Map(works.flatMap(work => [[work.id ?? work.slug, work], [work.slug, work]]));
-  for (const slug of slugs) {
-    if (!/^[a-zA-Z0-9_-]+$/.test(slug) || !knownTracks.has(slug)) {
-      throw new Error(`works.json に有効な曲IDがありません: ${slug}`);
-    }
-  }
+async function main(ids) {
+  if (!ids.length) throw new Error('使い方: node scripts/check-audio.js <曲ID> [<曲ID> ...]');
+  const validKey = new RegExp(tracks.assetKeyPattern);
+  const selected = ids.map(id => {
+    const work = validKey.test(id) ? findTrack(works, id) : undefined;
+    if (!work) throw new Error(`works.json に有効な曲IDがありません: ${id}`);
+    return [id, work];
+  });
 
-  for (const slug of slugs) {
-    const url = `https://audio.galpachi.com/audio/${knownTracks.get(slug).slug}.mp3`;
-    const response = await fetch(url, {
-      headers: { Range: 'bytes=0-1', Origin: 'https://www.galpachi.com' },
+  for (const [id, work] of selected) {
+    const response = await fetch(audioUrl(work.slug), {
+      headers: { Range: range, Origin: site.siteOrigin },
       redirect: 'error',
-      signal: AbortSignal.timeout(15000)
+      signal: AbortSignal.timeout(rules.timeoutSeconds * 1000)
     });
-    const contentType = response.headers.get('content-type')?.split(';')[0];
-    const range = response.headers.get('content-range') || '';
-    const origin = response.headers.get('access-control-allow-origin');
-    if (response.status !== 206 || contentType !== 'audio/mpeg' ||
-        !/^bytes 0-1\/[1-9][0-9]*$/.test(range) ||
-        !['*', 'https://www.galpachi.com'].includes(origin)) {
+    const headers = Object.fromEntries(response.headers);
+    if (!validAudioResponse(response.status, headers, rules.rangeEnd - rules.rangeStart + 1)) {
       await response.body?.cancel();
-      throw new Error(`${slug}: 音源の応答を確認できません (HTTP ${response.status}, ${contentType || 'Content-Typeなし'}, ${range || 'Content-Rangeなし'}, CORS ${origin || 'なし'})`);
+      throw new Error(`${id}: 音源の応答を確認できません (HTTP ${response.status}, ${headers['content-type'] || 'Content-Typeなし'}, ${headers['content-range'] || 'Content-Rangeなし'}, CORS ${headers['access-control-allow-origin'] || 'なし'})`);
     }
     const bytes = await response.arrayBuffer();
-    if (bytes.byteLength !== 2) throw new Error(`${slug}: 部分取得のサイズが不正です`);
-    console.log(`確認OK: ${slug} (HTTP 206)`);
+    if (!validAudioResponse(response.status, headers, bytes.byteLength)) {
+      throw new Error(`${id}: 部分取得のサイズが不正です`);
+    }
+    console.log(`確認OK: ${id} (HTTP ${response.status})`);
   }
 }
 

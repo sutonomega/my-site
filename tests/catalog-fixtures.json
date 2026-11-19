@@ -1,0 +1,117 @@
+{
+  "tracks": [
+    {
+      "id": "track-fd8b43f596008a02",
+      "slug": "buranko-no-oto",
+      "lookup": [
+        "track-fd8b43f596008a02",
+        "buranko-no-oto"
+      ]
+    },
+    {
+      "id": "track-1234abcd9876ef00",
+      "slug": "track-1234abcd9876ef00",
+      "lookup": [
+        "track-1234abcd9876ef00"
+      ]
+    }
+  ],
+  "unknownId": "missing-track",
+  "audio": [
+    {
+      "name": "正常",
+      "status": 206,
+      "headers": {
+        "content-type": "audio/mpeg",
+        "content-range": "bytes 0-1/4658542",
+        "access-control-allow-origin": "https://www.galpachi.com"
+      },
+      "length": 2,
+      "valid": true
+    },
+    {
+      "name": "CORSワイルドカードとContent-Typeパラメーター",
+      "status": 206,
+      "headers": {
+        "content-type": "audio/mpeg; charset=binary",
+        "content-range": "bytes 0-1/4658542",
+        "access-control-allow-origin": "*"
+      },
+      "length": 2,
+      "valid": true
+    },
+    {
+      "name": "未配置",
+      "status": 404,
+      "headers": {},
+      "length": 0,
+      "valid": false
+    },
+    {
+      "name": "部分取得に未対応",
+      "status": 200,
+      "headers": {
+        "content-type": "audio/mpeg",
+        "content-range": "bytes 0-1/4658542",
+        "access-control-allow-origin": "https://www.galpachi.com"
+      },
+      "length": 2,
+      "valid": false
+    },
+    {
+      "name": "範囲が不正",
+      "status": 206,
+      "headers": {
+        "content-type": "audio/mpeg",
+        "content-range": "bytes 1-2/4658542",
+        "access-control-allow-origin": "https://www.galpachi.com"
+      },
+      "length": 2,
+      "valid": false
+    },
+    {
+      "name": "全長が範囲より短い",
+      "status": 206,
+      "headers": {
+        "content-type": "audio/mpeg",
+        "content-range": "bytes 0-1/1",
+        "access-control-allow-origin": "https://www.galpachi.com"
+      },
+      "length": 2,
+      "valid": false
+    },
+    {
+      "name": "MP3以外",
+      "status": 206,
+      "headers": {
+        "content-type": "text/html",
+        "content-range": "bytes 0-1/4658542",
+        "access-control-allow-origin": "https://www.galpachi.com"
+      },
+      "length": 2,
+      "valid": false
+    },
+    {
+      "name": "CORSが不正",
+      "status": 206,
+      "headers": {
+        "content-type": "audio/mpeg",
+        "content-range": "bytes 0-1/4658542",
+        "access-control-allow-origin": "https://example.com"
+      },
+      "length": 2,
+      "valid": false
+    },
+    {
+      "name": "応答サイズが不正",
+      "status": 206,
+      "headers": {
+        "content-type": "audio/mpeg",
+        "content-range": "bytes 0-1/4658542",
+        "access-control-allow-origin": "https://www.galpachi.com"
+      },
+      "length": 1,
+      "valid": false
+    }
+  ]
+}

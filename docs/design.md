@@ -15,8 +15,10 @@ Cloudflare Tunnelは音声用ホストの `/audio/<slug>.mp3` をUbuntuの `http
 | パス | 役割 |
 | --- | --- |
 | `index.html` | ホームの基本構造、共通の音声要素とミニプレーヤー |
-| `js/script.js` | 曲データの取得、タグ絞り込み、URLに応じた画面描画 |
-| `js/player.js` | 音源URLの組み立て、再生・シーク・復元、エラー表示 |
+| `src/main.ts` / `src/views.ts` | 曲データの取得・画面遷移・タグ絞り込みと、再利用する描画部品 |
+| `src/player.ts` / `src/types.ts` | 音源の再生、シーク、復元と、曲データ・再生状態の型 |
+| `config/` / `shared/` | 公開設定と、曲ID・ファイル名・音源応答の共通処理 |
+| `js/site.js` | `npm run build` で生成するGitHub Pages向けJavaScript |
 | `css/style.css` | 共通レイアウト、レスポンシブ表示、プレーヤーのスタイル |
 | `json/works.json` | 曲メタデータの配列 |
 | `lyrics/<slug>.md` | 曲ごとの歌詞。ブラウザーには改行付きのプレーンテキストとして表示する。 |
@@ -46,3 +48,10 @@ Cloudflare Tunnelは音声用ホストの `/audio/<slug>.mp3` をUbuntuの `http
 Windowsの登録ツールは、利用者の端末にSQLiteの曲カタログを置く。公開済みの曲と歌詞を `tracks`、公開処理中の曲情報を `pending` に保存する。両方で公開用の自動IDを主キーにし、ファイル名のキーは一意にする。公開済みの並び順と歌詞のGitオブジェクトIDも保存し、変更のない歌詞を再取得せずに使えるようにする。
 
 公開時はGitHubの最新データを取り込んだあと、SQLiteから曲一覧と追加曲の歌詞を生成する。音源の部分取得が成功してから2ファイルを同じコミットに入れ、GitHub Pagesへ反映する。データベースは端末内で使うため、ブラウザーは引き続き静的なJSONと歌詞ファイルを取得する。初期化・バックアップは[登録ツールの手順](../tools/track-publisher/README.md#sqlite曲カタログ)を参照。
+
+
+## 共通設定と検証
+
+`config/site.json` は公開URLとファイルの配置、`config/tracks.json` は公開IDと旧IDの対応規則、`config/audio-check.json` は部分取得の条件を定義する。公開サイトの設定はビルド時に組み込む。Node.jsとPythonのツールは同じ設定を参照する。
+
+`tests/catalog-fixtures.json` は新旧の曲IDと音源応答の共通テストデータ。登録ツールは共通のHTTP応答条件に加え、公開応答とUbuntuへ転送したファイルのサイズ・取得バイトの一致を確認する。

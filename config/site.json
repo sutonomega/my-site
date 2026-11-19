@@ -1,0 +1,8 @@
+{
+  "siteOrigin": "https://www.galpachi.com",
+  "audioOrigin": "https://audio.galpachi.com",
+  "audioPath": "/audio/",
+  "lyricsPath": "lyrics/",
+  "worksPath": "json/works.json",
+  "trackQuery": "slug"
+}

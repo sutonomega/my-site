@@ -1,3 +1,9 @@
+:root {
+  --pill-radius: 999px;
+  --tag-fill: rgba(255, 255, 255, 0.06);
+  --tag-border: rgba(255, 255, 255, 0.05);
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -227,7 +233,7 @@ a {
   width: 220px;
   height: 58px;
 
-  border-radius: 999px;
+  border-radius: var(--pill-radius);
 
   background:
     rgba(255, 255, 255, 0.04);
@@ -516,11 +522,11 @@ footer {
 .tag {
   padding: 4px 10px;
 
-  border-radius: 999px;
+  border-radius: var(--pill-radius);
 
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--tag-fill);
 
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--tag-border);
 
   font-size: 11px;
 
@@ -583,7 +589,7 @@ footer {
   width: 72px;
   height: 72px;
 
-  border-radius: 999px;
+  border-radius: var(--pill-radius);
 
   display: flex;
   align-items: center;
@@ -686,7 +692,7 @@ footer {
   height: 42px;
 
   border: none;
-  border-radius: 999px;
+  border-radius: var(--pill-radius);
 
   background: rgba(255, 255, 255, 0.08);
 
@@ -734,7 +740,7 @@ footer {
   background:
     rgba(5, 5, 16, 0.45);
 
-  border-radius: 999px;
+  border-radius: var(--pill-radius);
 
   padding: 12px 18px;
 
@@ -746,7 +752,7 @@ footer {
 
   padding: 10px 18px;
 
-  border-radius: 999px;
+  border-radius: var(--pill-radius);
 
   background:
     rgba(255, 255, 255, 0.05);
@@ -1476,7 +1482,7 @@ footer {
 
   height: 3px;
 
-  border-radius: 999px;
+  border-radius: var(--pill-radius);
 
   background:
     rgba(255, 255, 255, 0.12);
@@ -1546,7 +1552,7 @@ body.fade-out {
   padding:
     0.9rem 1.8rem;
 
-  border-radius: 999px;
+  border-radius: var(--pill-radius);
 
   border:
     1px solid rgba(255,

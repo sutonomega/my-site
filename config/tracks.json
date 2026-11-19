@@ -1,0 +1,6 @@
+{
+  "idPrefix": "track-",
+  "idBytes": 8,
+  "legacyIdNamespace": "echo-note:",
+  "assetKeyPattern": "^[A-Za-z0-9_-]+$"
+}

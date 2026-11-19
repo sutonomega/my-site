@@ -2,8 +2,9 @@ const fs = require('fs');
 
 const path = require('path');
 
-const works =
-  require('../json/works.json');
+const site = require('../config/site.json');
+const { audioFilename } = require('../shared/tracks.cjs');
+const works = require('../' + site.worksPath);
 
 const audioDir = './audio';
 
@@ -18,7 +19,7 @@ works.forEach(work => {
   const newPath =
     path.join(
       audioDir,
-      `${work.slug}.mp3`
+      audioFilename(work.slug)
     );
 
   if (!fs.existsSync(oldPath)) {
@@ -33,7 +34,7 @@ works.forEach(work => {
   if (fs.existsSync(newPath)) {
 
     console.log(
-      `skip: ${work.slug}.mp3`
+      `skip: ${audioFilename(work.slug)}`
     );
 
     return;
@@ -48,7 +49,7 @@ works.forEach(work => {
     `renamed:
 ${work.title}.mp3
 →
-${work.slug}.mp3`
+${audioFilename(work.slug)}`
   );
 
 });

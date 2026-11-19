@@ -49,7 +49,7 @@
   <div class="particles"></div>
   <div class="mini-player" id="mini-player">
 
-    <button class="mini-play" id="mini-play">
+    <button class="mini-play" id="mini-play" aria-label="再生" disabled>
 
       ▶
 
@@ -75,19 +75,16 @@
         </span>
 
       </div>
-      <div class="mini-progress">
-
-        <div class="mini-progress-bar" id="mini-progress-bar">
-        </div>
-
-      </div>
+      <input class="mini-progress" id="mini-progress" type="range" min="0" max="0" step="any"
+        value="0" aria-label="再生位置" disabled>
+      <p class="player-message" id="player-message" role="status"></p>
       <div class="volume-control">
 
         <span class="volume-icon">
           ♪
         </span>
 
-        <input type="range" id="volume-slider" min="0" max="1" step="0.01" value="0.7">
+        <input type="range" id="volume-slider" aria-label="音量" min="0" max="1" step="0.01" value="0.7">
 
       </div>
     </div>
@@ -261,8 +258,8 @@
       © Echo Note
     </footer>
   </main>
-  <script src="./js/script.js?v=audio-migration-1"></script>
-  <script src="./js/player.js?v=audio-migration-1"></script>
+  <script src="./js/script.js?v=work-player-2"></script>
+  <script src="./js/player.js?v=work-player-2"></script>
 
 </body>
 

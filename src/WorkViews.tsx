@@ -11,6 +11,26 @@ export function safeExternalUrl(value: string): URL | undefined {
   }
 }
 
+const placeholderThumbnail = './images/placeholder.png';
+
+function youtubeThumbnail(value: string): string | undefined {
+  const url = safeExternalUrl(value);
+  if (!url) return;
+
+  let videoId: string | undefined;
+  if (url.hostname === 'youtu.be') {
+    videoId = /^\/([\w-]+)\/?$/.exec(url.pathname)?.[1];
+  } else if (['youtube.com', 'www.youtube.com', 'm.youtube.com'].includes(url.hostname)) {
+    videoId = url.pathname === '/watch'
+      ? url.searchParams.get('v') ?? undefined
+      : /^\/(?:shorts|live|embed)\/([\w-]+)\/?$/.exec(url.pathname)?.[1];
+  }
+
+  if (videoId && /^[A-Za-z0-9_-]{11}$/.test(videoId)) {
+    return `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+  }
+}
+
 function ExternalLink({ url, className, children }: {
   url: string;
   className: string;
@@ -41,15 +61,17 @@ export function WorkCard({ work, selected, navigate }: {
   selected: boolean;
   navigate: (url: string) => void;
 }) {
-  const videoId = safeExternalUrl(work.youtube)?.searchParams.get('v') ?? '';
-  const thumbnail = /^[A-Za-z0-9_-]{11}$/.test(videoId)
-    ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`
-    : './images/placeholder.png';
+  const thumbnail = youtubeThumbnail(work.youtube);
 
   return (
     <a className="work-card-link" href={trackPagePath(work)} onClick={event => followLocalLink(event, navigate)}>
       <div className="work-card">
-        <div className="work-thumbnail"><img src={thumbnail} alt={work.title} loading="lazy" decoding="async" /></div>
+        <div className="work-thumbnail">
+          <img key={thumbnail} src={thumbnail ?? placeholderThumbnail} alt={work.title} loading="lazy" decoding="async"
+            onError={({ currentTarget }) => {
+              if (currentTarget.getAttribute('src') === thumbnail) currentTarget.src = placeholderThumbnail;
+            }} />
+        </div>
         {selected && <span className="playing-badge">NOW PLAYING</span>}
         <h3>{work.title}</h3>
         <div className="work-meta"><span>{work.date}</span><Tags tags={work.tags} /></div>
